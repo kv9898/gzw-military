@@ -1,0 +1,51 @@
+{
+  "ajax_endpoint": "http://search.sasac.gov.cn:8080/searchweb/search",
+  "ajax_method": "POST",
+  "ajax_params": {
+    "fullText": "调研",
+    "pageNow": "2",
+    "pageSize": "10",
+    "sortType": "0",
+    "sortKey": "showTime",
+    "sortFlag": "-1",
+    "highlighter": "2",
+    "keywordNavigation": "1",
+    "checkSearch": "1",
+    "keyType": "fullText",
+    "searchType": "0"
+  },
+  "ajax_headers": {
+    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    "X-Requested-With": "XMLHttpRequest",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/125.0.0.0 Safari/537.36",
+    "Referer": "http://search.sasac.gov.cn:8080/searchweb/search_gzw.jsp",
+    "Origin": "http://search.sasac.gov.cn:8080"
+  },
+  "total_results": 5471,
+  "max_page": 0,
+  "page_size": 10,
+  "article_fields": [
+    "name",
+    "summaries",
+    "url",
+    "showTime",
+    "createTime",
+    "indexName",
+    "index_number",
+    "dbAppendix",
+    "number"
+  ],
+  "domains": [
+    "www.sasac.gov.cn"
+  ],
+  "selectors": {
+    "result_container": "div#info ul",
+    "result_item": "div#info ul li",
+    "result_title": "p.zsy_schead a",
+    "result_snippet": "p.zsy_scdescribe",
+    "result_date": "p.zsy_scdate",
+    "pagination": "div#page"
+  },
+  "search_term": "调研",
+  "pagination": "change pageNow parameter in POST body"
+}

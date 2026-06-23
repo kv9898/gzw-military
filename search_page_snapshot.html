@@ -1,0 +1,729 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><script async="" src="http://v1.jiathis.com/code/jia.js?_=1782202492768"></script>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=8">
+<meta name="renderer" content="webkit">
+
+<link type="text/css" rel="stylesheet" href="css/style.css">
+<link type="text/css" rel="stylesheet" href="css/style_ty.css">
+<link type="text/css" rel="stylesheet" href="css/style_css.css">
+<link type="text/css" rel="stylesheet" href="css/style_dh.css">
+<link href="js/themes/base/jquery.ui.all.css" rel="stylesheet" type="text/css">
+
+<script type="text/javascript" src="js/jquery-1.8.3.min.js"></script>
+<script type="text/javascript" src="js/jquery-jtemplates.js"></script>
+<script type="text/javascript" src="js/jquery.outerhtml.js"></script>
+<script type="text/javascript" src="js/easyui/jquery.easyui.min.js"></script>
+<script type="text/javascript" src="js/json2.js"></script>
+<script type="text/javascript" src="js/popup_layer.js"></script>
+<script type="text/javascript" src="js/sugg.js"></script>
+<script type="text/javascript" src="js/ui/jquery.ui.core.js"></script>
+<script type="text/javascript" src="js/ui/jquery.ui.widget.js"></script>
+<script type="text/javascript" src="js/ui/jquery.ui.datepicker.js"></script>
+<script type="text/javascript" src="js/ui/jquery.ui.datepicker-zh-CN.js"></script>
+<script type="text/javascript" src="js/search_gzw.js"></script>
+<script type="text/javascript" src="js/dh.js"></script>
+
+<title>检索结果</title>
+<style>
+.bm_red12{
+	color:#ba0a00; 
+	font-weight:700
+}
+.icon {
+	background:url(images/icons.gif) -1000px -1000px no-repeat;
+	padding:2px 10px;
+	zoom:1;
+	font-size:12px;
+	cursor:default;
+}
+.search_blue16_bold,
+.search_blue16_bold a,
+.search_blue16_bold a:hover{color:#0132d1; font-size:16px; text-decoration:underline;}
+
+.black14_18,
+.black14_18 a,
+.black14_18 a:hover {text-decoration: none;line-height:20px;font-size:12px;  }
+
+.search_green14,
+.search_green14 a,
+.search_green14 a:hover{color:#1b7a16; font-size:12px; text-decoration:none; font-family:Arial, Helvetica, sans-serif}
+.zsy_scbtn1,.zsy_scbtn2{font-weight:700;cursor:pointer;color:#333;}
+img {border:none;width:auto;vertical-align:top;}
+
+.stl_2022{
+	display:none; 
+}
+
+</style><script>
+	function gjssbt(){
+		var gjssdiv = document.getElementById("adv_div");
+		if(gjssdiv.style.display="none"){
+			gjssdiv.style.display="block";
+		};
+	}
+	function closediv(){
+		var gjssdiv = document.getElementById("adv_div");
+		if(gjssdiv.style.display="block"){
+			gjssdiv.style.display="none";
+		};
+	}
+
+</script><script language="JavaScript">
+	
+	var contextPath = "/searchweb";
+
+	var suggestJSON=[{"name":"0"},{"name":"1"},{"name":"2"},{"name":"3"},{"name":"4"},{"name":"5"},{"name":"6"},{"name":"7"},{"name":"8"},{"name":"9"}];
+	String.prototype.replaceAll  = function(s1,s2){
+		return this.replace(new RegExp(s1,'g'),s2);
+	}
+	function getOnkeyDown(e){
+		var ev = e;
+		ev = ev || event;
+		if(ev.keyCode == 13){
+			$("#search").trigger("click");
+		}
+	}
+	
+</script><script>
+var param = new Array();
+var fullText = "";
+var searchType = "0";
+var sortType="0";
+var urls="";
+var jsflIndexSeleted = "";
+
+		fullText =  $.trim("调研");
+
+	    param[param.length] = "fullText:'调研'";
+
+
+	var p0 = -450;
+	var i;
+	var ent = 0;
+	var ign = 0;
+	
+	function openAdvDiv(){
+		setAdvSearch();
+		gjssbt();
+		//moveDiv("adv_div", -1);
+	}
+
+	function closeAdvDiv(){
+		closediv();
+		//moveDiv("adv_div", 1);
+	}
+	
+	
+	/**
+	function openAdvDiv(){
+		setAdvSearch();
+		//gjssbt();
+		moveDiv("adv_div", -1);
+	}
+
+	function closeAdvDiv(){
+		//closediv();
+		moveDiv("adv_div", 1);
+	}
+	*/
+	
+	function moveDiv(d, c){
+		var obj = document.getElementById(d);
+		if (c>0) {
+			p0 = p0 - 50;
+			obj.style.top = p0+"px";
+			if (p0>-450) {
+				setTimeout(function(){moveDiv(d, c)}, 5);
+			} else {
+				ent = 0;
+				obj.style.display = "none";
+			}
+		} else {
+			p0 = p0 + 50;
+			obj.style.top = p0+"px";
+			if (p0<0) {
+				setTimeout(function(){moveDiv(d, c)}, 5);
+			} else {
+				ent = 1;
+				obj.style.display = "block";
+			}
+		}		
+	}
+	
+	function clickMove(){
+		if (ign==1) {
+			ign = 0;
+			return;
+		}
+		if (ent==1) {
+			closeAdvDiv();	
+		}
+	}
+	
+	/**
+	function autoHeight(){
+		var screenSize = getPageSize();
+		alert(screenSize);
+		$("#info_table").css("height", (screenSize[3]-221)+"px");
+	}
+	*/
+	
+</script></head>
+
+
+
+
+<!--搜索下拉框样式-->
+
+
+
+
+
+
+<body>
+
+<div class="main sjw-header clearfix">
+    <div class="fl"><img src="images/logo.jpg" width="528" height="118"></div>
+</div>
+
+
+<div class="sjw-nav">
+  <div class="main sjw-con clearfix">
+    <div class="zsy_srch1">
+	<input name="jsflType" id="jsflType" type="hidden" value="1">
+	<input name="sort" id="sort" type="hidden" value="0">
+    <input name="keyType" id="keyType" type="hidden" value="fullText">
+    <input name="jsfl" id="jsfl" type="hidden" value="">
+    <input name="timeRange" id="timeRange" type="hidden" value="0">
+	<input name="urls" id="urls" type="hidden" value="">
+	<input name="ztfl" id="ztfl" type="hidden" value="">
+	<input name="xxly" id="xxly" type="hidden" value="">
+	<input name="tcfl" id="tcfl" type="hidden" value="">
+	<input name="jsflSelectid" id="jsflSelectid" type="hidden" value="0">
+
+		<input name="fullText" id="fullText" onkeypress="getOnkeyDown(event)" type="text" class="zsy_sctext">
+		<input type="submit" name="search" id="search" class="zsy_scbtn1" value="搜索">
+		<!--<input type="button" class="zsy_scbtn2" value="高级搜索" onclick="openAdvDiv();return false;"/>-->
+    </div>
+    <div id="cont_box" style="POSITION: relative; left:114px; display:none;background-color: #FFFFFF;width: 542px;border: 1px solid #999999;border-top-style: none;z-index: 999;font-size:12px;"></div>
+  </div>
+</div>
+
+
+
+<div class="main1 clearfix">
+
+
+
+<div style="width:980px; margin:0 auto;">
+
+<!-- 高级检索 start -->
+<!--
+<div   onclick="clickMove();" >  
+
+<div class="wai" onclick="ign=1;"   id="adv_div"  >
+	<a class="dsb exit"><img src="images/exit.jpg" width="16" height="14" style="width:16px; height:14px;" onclick="closeAdvDiv();return false;" /></a>
+	<div class="clearfix">
+	<div class="wai_left fl">
+		<ul>
+    		<li><span>搜索词汇</span></li>
+            <li><span>搜索范围</span></li>
+            <li style="margin-top:35px;"><span>搜索结果显示</span></li>
+    	</ul>
+	</div>
+    
+  <div class="wai_right fr">
+    <ul>
+        <li style="margin:0;">
+        	<span>包含以下关键字</span><font>(必填项)</font>
+        	<input name="fullTextAdv" id="sFullTextAdv" class="ty" type="text"   />
+        </li>
+        <li>
+        	<span><em>不包含</em>以下关键字</span>
+        	<input name="fullTextExc" id="sFullTextExc" class="bbx ty" type="text"   />
+        </li>
+    </ul>
+    <ul>
+        <li>关键词位置
+        	<input name="fullType" id="sTitle" type="radio" value="title" class="dx_1" checked="checked"   />标题
+        	<input name="fullType" id="sFullText" type="radio" value="fullText" class="dx_2"  />全文
+        </li>
+        <li>发布时间
+        	<input name="lowerLimit" type="text" id="lowerLimit" style="margin-left:148px;" class="bbx ty cz_ty"  />&nbsp;到&nbsp;
+        	<input name="upperLimit" type="text" id="upperLimit" readonly class="bbx ty cz_ty"  />
+        	<font><a href="#" id="clearTime" name="clearTime" class="timeblue12">清除日期</a></font>
+        </li>
+        <li>网站检索
+        	<input name="urls" id="sUrls" style="margin-left:148px;" class="bbx ty" type="text"  />
+        </li>
+    </ul>
+    <ul>
+        <li>结果排序规则
+	        <input name="sort" id="sSort0" type="radio" value="0" class="dx_1" checked="checked" />相关度
+	        <input name="sort" id="sSort1" type="radio" value="1" style="margin-left:30px;" class="dx_2"  />发布时间
+        </li>
+        <li>每页显示条数
+            <select name="number" id="sNumber" >
+                <option value="10" selected="selected">10</option>
+         		<option value="20">20</option>
+         		<option value="50">50</option>
+            </select>
+        </li>
+    </ul>
+    </div>
+    </div>
+    <div class="di_ss clearfix">
+	    <span class="fl">
+	    	<input  type="submit" name="aSearch" id="aSearch" class="gj_btn1" value="搜索"/>
+	    </span>
+	    <span class="fr">
+	    	<input  type="button" name="aReset" id="aReset" class="gj_btn1" value="重置"/>
+	    </span>
+    </div>
+</div>
+
+ </div>
+-->
+<!-- 高级检索 end -->
+
+
+<div class="sjdiv2">
+
+	<div class="g_newNav stl_2022" id="daohang">
+			<div>
+				<ul>
+					<li jsfl="" selectid="0">
+						<a href="#" class="current">全部</a>
+					</li>
+					<!--<li jsfl="" selectid="1">
+						<a href="#">机构概况</a>
+					</li>-->
+					<li jsfl="xwdt" selectid="2">
+						<a href="#">新闻发布</a>
+					</li>
+					<li jsfl="xxgk" selectid="3">
+						<a href="#">国资监管</a>
+					</li>
+					<li jsfl="zxbs" selectid="4">
+						<a href="#">信息公开</a>
+					</li>
+					<li jsfl="gxsj" selectid="5">
+						<a href="#">互动交流</a>
+					</li>
+					<li jsfl="zysj" selectid="6" style="padding: 7px 0 0 0px;">
+						<a href="#">在线服务</a>
+					</li>
+				</ul>
+			</div>
+		</div>
+
+	<!-- 信息数量 start -->
+	<div class="zsy_srch2" id="infoNum">系统为您找到相关结果约<span>5,471</span>个</div>
+	<!-- 信息数量 end -->
+	
+	<!-- 条件筛选栏 -->
+	<div class="screening stl_2022" id="tiaojian">
+			<div class="fl">
+				<div class="tips fl">查询范围：</div>
+				<dl class="searchBoxPro pr fl">
+            	<dd>
+					<form action="">
+                		<div class="tier">
+                			<div class="divselect" id="divselect2">
+                				<cite class="Prompt">全文</cite>
+                				<ul style="">
+									<li type="title"><a href="javascript:;" selectid="2">标题</a></li>
+                					<li type="fullText"><a href="javascript:;" selectid="1">全文</a></li>
+               					</ul>
+               				</div>
+               				<input name="" type="hidden" value="" id="inputselect2">
+           				</div>
+					</form>
+       			</dd>
+       			</dl>
+			</div>
+
+			<div class="fl">
+				<div class="tips fl">排序方式：</div>
+				<dl class="searchBoxPro pr fl">
+       				<dd>
+						<form action="">
+                				<div class="tier">
+               					<div class="divselect" id="divselect3">
+              						<cite class="Prompt">相关度</cite>
+               						<ul style="">
+               							<li sorttype="0"><a href="javascript:;" selectid="2">相关度</a></li>
+               							<li sorttype="1"><a href="javascript:;" selectid="3">时间</a></li>
+									</ul>
+               					</div>
+               					<input name="" type="hidden" value="" id="inputselect3">
+               				</div>
+						</form>
+          			</dd>
+       			</dl>
+			</div>
+
+			<div class="fl">
+				<div class="tips fl">时间范围：</div>
+				<dl class="searchBoxPro pr fl">
+       				<dd>
+					<form action="">
+                				<div class="tier">
+                					<div class="divselect" id="divselect4" style="width:210px">
+                						<!--<cite class="Prompt"><input name="lowerLimit" type="text" id="lowerLimit" class="dhDateInput" />&nbsp;-&nbsp;<input name="upperLimit" type="text" id="upperLimit" class="dhDateInput" />&nbsp;<a href="#" id="clearTime" name="clearTime" style="font-style:normal">清除</a></cite>-->
+										<cite style="width:205px;"><div class="timeText fl" id="timeTextL"></div>&nbsp;-&nbsp;<div class="timeText fr" id="timeTextU"></div></cite>
+                					<ul style="">
+                							<li class="zdyDate" style="height:auto;">
+                								<dl>
+                									<dd>从　<input name="lowerLimit" type="text" id="lowerLimit" class="hasDatepicker"></dd>
+                									<dd>到　<input name="upperLimit" type="text" id="upperLimit" class="hasDatepicker"></dd>
+                									<dd><input type="button" value="确定">&nbsp;<input type="button" value="清除" id="clearTime"></dd>
+                								</dl>
+                							</li>
+                						</ul>
+										</div>
+                					<input name="" type="hidden" value="" id="inputselect4">
+                				</div>
+							</form>
+                			</dd>
+            			</dl>
+					</div>
+					<div class="prompting fr" id="infoNum"></div>
+				</div>
+				<!-- 条件筛选栏结束 -->
+	<div class="g_newNav2 stl_2022" id="daohang2">
+		<div id="lanmudaohang21">
+			<div class="lanmu2">
+				<table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td valign="top" width="115px">
+				<a href="#" parm="n2588020/n2588057/">委领导：</a>
+				</td><td>
+				<a href="#" parm="n2588020/n2588057/n2592506/">郝鹏</a>
+				<a href="#" parm="n2588020/n2588057/n8800048/">翁杰明</a>
+				<a href="#" parm="n2588020/n2588057/n19252954/">谭作钧</a>
+				<a href="#" parm="n2588020/n2588057/n14985548/">袁野</a>
+				<a href="#" parm="n2588020/n2588057/n25962515/">龚堂华</a>
+				<a href="#" parm="n2588020/n2588057/n25820465/">赵世堂</a>
+				<a href="#" parm="n2588020/n2588057/n12683196/">周国平</a>
+				<a href="#" parm="n2588020/n2588057/n12683201/">彭华岗</a>
+				</td></tr></tbody></table>
+			</div>
+			<div class="lanmu2">
+				<table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td valign="top" width="145px">
+				<a href="#" parm="n2588020/n2588062/">副部长级干部：</a>
+				</td><td>
+				<a href="#" parm="n2588020/n2588062/">李志群</a>
+				</td></tr></tbody></table>
+			</div>
+			<div class="lanmu2">
+				<table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td valign="top" width="115px">
+				<a href="#" parm="n2588020/n12130298/">副秘书长：</a>
+				</td><td>
+				<a href="#" parm="n2588020/n12130298/n12130365/">庄树新</a>
+				</td></tr></tbody></table>
+			</div>
+			<div class="lanmu2">
+				<table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td valign="top" width="325px">
+				<a href="#" parm="n2588020/n2877928/">中央纪委国家监委驻国资委纪检监察组</a>
+				</td><td>
+				</td></tr></tbody></table>
+			</div>
+			<div class="lanmu2">
+				<table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td valign="top" width="160px">
+				<a href="#" parm="n2588020/n2588072/">国资委内设机构：</a>
+				</td><td>
+				<a href="#" parm="n2588020/n2588072/n2590818/">办公厅</a>
+				<a href="#" parm="n2588020/n2588072/n2591482/">综合研究局</a>
+				<a href="#" parm="n2588020/n2588072/n2590860/">法规局</a>
+				<a href="#" parm="n2588020/n2588072/n2590902/">规划局</a>
+				<a href="#" parm="n2588020/n2588072/n2590944/">财管运行局</a>
+				<a href="#" parm="n2588020/n2588072/n2591020/">产权局</a>
+				<a href="#" parm="n2588020/n2588072/n2591064/">改革局</a>
+				<a href="#" parm="n2588020/n2588072/n2591106/">考核分配局</a>
+				<a href="#" parm="n2588020/n2588072/n2591192/">资本局</a>
+				<a href="#" parm="n2588020/n2588072/n2591148/">科创局</a>
+				<a href="#" parm="n2588020/n2588072/n2591284/">综合监督局</a>
+				<a href="#" parm="n2588020/n2588072/n2591266/">监督追责局</a>
+				<a href="#" parm="n2588020/n2588072/n2591302/">企干一局</a>
+				<a href="#" parm="n2588020/n2588072/n2591344/">企干二局</a>
+				<a href="#" parm="n2588020/n2588072/n2591386/">党建局</a>
+				<a href="#" parm="n2588020/n2588072/n2591426/">宣传局</a>
+				<a href="#" parm="n2588020/n2588072/n23746822/">社会责任局</a>
+				<a href="#" parm="n2588020/n2588072/n2591548/">国际合作局</a>
+				<a href="#" parm="n2588020/n2588072/n2591586/">人事局</a>
+				<a href="#" parm="n2588020/n2588072/n2591626/">协会党建局</a>
+				<a href="#" parm="n2588020/n2588072/n2591644/">管理局</a>
+				<a href="#" parm="n2588020/n2588072/n2591684/">机关党委</a>
+				<a href="#" parm="n2588020/n2588072/n2591770/">巡视办</a>
+				<a>国资委全面深化改革领导小组办公室</a>
+				</td></tr></tbody></table>
+			</div>			
+			<div class="lanmu2 lst">
+				<table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td valign="top" width="160px">
+				<a href="#" parm="n2588020/n2877938/">国资委直属机构：</a>
+				</td><td>
+				<a href="#" parm="n2588020/n2877938/n7863936/">干教中心</a>
+				<a href="#" parm="n2588020/n2877938/n2879671/">研究中心</a>
+				<a href="#" parm="n2588020/n2877938/n2879617/">信息中心</a>
+				<a href="#" parm="n2588020/n2877938/n18226663/">国企绩效评价中心</a>
+				<a href="#" parm="n2588020/n2877938/n2879597/">新闻中心</a>
+				<a href="#" parm="n2588020/n2877938/n7863941/">中国大连高级经理学院</a>
+				</td></tr></tbody></table>
+			</div>
+		</div>
+		<div id="lanmudaohang22">
+			<div class="lanmu2 lst">
+				<table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td valign="top" width="95%">
+				<a href="#" parm="n2588025/n2643309/">时政要闻</a>
+				<a href="#" parm="n2588025/n2643314/">领导活动</a>
+				<a href="#" parm="n2588025/n2588119/">新闻</a>
+				<a href="#" parm="n2588025/n2588134/">评论</a>
+				<a href="#" parm="n2588025/n8876492/">理论</a>
+				<a href="#" parm="n2588025/n2588124/">央企联播</a>
+				<a href="#" parm="n2588025/n2588129/">地方扫描</a>
+				<a href="#" parm="n2588025/n2588139/">媒体观察</a>
+				<a href="#" parm="n2588025/n2588144/">专题</a>
+				<a href="#" parm="n2588025/n2588149/">图片</a>
+				<a href="#" parm="n2588025/n2588154/">视频</a>
+				<a href="#" parm="n2588025/n2649281/">音频</a>
+				<a href="#" parm="n2588025/n2588159/">文化</a>
+				<a href="#" parm="n2588025/n2641611/">人物</a>
+				<a href="#" parm="n2588025/n2641616/">故事</a>
+				<a href="#" parm="n2588025/n10248920/">央企日历</a>
+				<a href="#" parm="n2588025/n2588164/">国资小新</a>
+				<a href="#" parm="n2588025/n4423279/">国资报告</a>
+				</td></tr></tbody></table>
+			</div>
+		</div>
+		<div id="lanmudaohang23">
+			<div class="lanmu2 lst">
+				<table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td valign="top" width="95%">
+				<a href="#" parm="n2588030/n2588919/">国企党建</a>
+				<a href="#" parm="n2588030/n2588924/">国企改革</a>
+				<a href="#" parm="n2588030/n2588929/">资本运营</a>
+				<a href="#" parm="n2588030/n2588934/">科技创新</a>
+				<a href="#" parm="n2588030/n2588939/">社会责任</a>
+				<a href="#" parm="n2588030/n2588944/">产权管理</a>
+				<a href="#" parm="n2588030/n2588949/">国际合作</a>
+				<a href="#" parm="n2588030/n2588954/">考核分配</a>
+				<a href="#" parm="n2588030/n2588959/">监督巡视</a>
+				<a href="#" parm="n2588030/n2588964/">机关建设</a>
+				</td></tr></tbody></table>
+			</div>
+		</div>
+		<div id="lanmudaohang24">
+			<div class="lanmu2 lst">
+				<table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td valign="top" width="95%" style="font-weight:bold;">
+				<a href="#" parm1="主题分类">主题分类</a>
+				</td></tr></tbody></table>
+			</div>
+			<div class="lanmu2">
+				<table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td valign="top" width="115px">
+				<a href="#" parm1="组织机构">组织机构：</a>
+				</td><td>
+				<a href="#" parm1="组织机构 &gt; 委领导">委领导</a>
+				<a href="#" parm1="组织机构 &gt; 主要职责">主要职责</a>
+				<a href="#" parm1="组织机构 &gt; 机构设置">机构设置</a>
+				</td></tr></tbody></table>
+			</div>
+			<div class="lanmu2">
+				<table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td valign="top" width="225px">
+				<a href="#" parm1="政务公开制度和工作文件">政务公开制度和工作文件：</a>
+				</td><td>
+				<a href="#" parm1="政务公开制度和工作文件 &gt; 政务公开制度">政务公开制度</a>
+				<a href="#" parm1="政务公开制度和工作文件 &gt; 政务公开工作文件">政务公开工作文件</a>
+				</td></tr></tbody></table>
+			</div>
+			<div class="lanmu2">
+				<table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td valign="top" width="180px">
+				<a href="#" parm1="建议提案办理结果">建议提案办理结果：</a>
+				</td><td>
+				<a href="#" parm1="建议提案办理结果 &gt; 人大建议复文">人大建议复文</a>
+				<a href="#" parm1="建议提案办理结果 &gt; 政协提案复文">政协提案复文</a>
+				</td></tr></tbody></table>
+			</div>
+			<div class="lanmu2">
+				<table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td valign="top" width="115px">
+				<a href="#" parm1="制度建设">制度建设：</a>
+				</td><td>
+				<a href="#" parm1="制度建设 &gt; 规章">规章</a>
+				<a href="#" parm1="制度建设 &gt; 规章规范性文件清理结果">规章规范性文件清理结果</a>
+				<a href="#" parm1="制度建设 &gt; 规范性文件">规范性文件</a>
+				</td></tr></tbody></table>
+			</div>
+			<div class="lanmu2">
+				<table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td valign="top" width="200px">
+				<a href="#" parm1="政策解读与舆情回应">政策解读与舆情回应：</a>
+				</td><td>
+				<a href="#" parm1="政策解读与舆情回应 &gt; 政策解读">政策解读</a>
+				<a href="#" parm1="政策解读与舆情回应 &gt; 舆情回应">舆情回应</a>
+				</td></tr></tbody></table>
+			</div>
+			<div class="lanmu2">
+				<table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td valign="top" width="115px">
+				<a href="#" parm1="综合事务">综合事务：</a>
+				</td><td>
+				<a href="#" parm1="综合事务 &gt; 预决算管理">预决算管理</a>
+				<a href="#" parm1="综合事务 &gt; 人事招聘">人事招聘</a>
+				<a href="#" parm1="综合事务 &gt; 定点扶贫">定点扶贫</a>
+				</td></tr></tbody></table>
+			</div>
+			<div class="lanmu2">
+				<table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td valign="top" width="200px">
+				<a href="#" parm1="国资监管和国企改革">国资监管和国企改革：</a>
+				</td><td>
+				<a href="#" parm1="国资监管和国企改革 &gt; 财务监管">财务监管</a>
+				<a href="#" parm1="国资监管和国企改革 &gt; 产权管理">产权管理</a>
+				<a href="#" parm1="国资监管和国企改革 &gt; 改革重组">改革重组</a>
+				<a href="#" parm1="国资监管和国企改革 &gt; 考核与薪酬">考核与薪酬</a>
+				<a href="#" parm1="国资监管和国企改革 &gt; 监督检查">监督检查</a>
+				<a href="#" parm1="国资监管和国企改革 &gt; 企业领导人员任免">企业领导人员任免</a>
+				<a href="#" parm1="国资监管和国企改革 &gt; 社会责任">社会责任</a>
+				<a href="#" parm1="国资监管和国企改革 &gt; 评先评优">评先评优</a>
+				<a href="#" parm1="国资监管和国企改革 &gt; 央企新闻发言人名录">央企新闻发言人名录</a>
+				</td></tr></tbody></table>
+			</div>
+			<div class="lanmu2 lst">
+				<table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td valign="top" width="95%" style="font-weight:bold;">
+				<a href="#" parm2="信息来源">信息来源</a>
+				</td></tr></tbody></table>
+			</div>
+			<div class="lanmu2">
+				<table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td valign="top" width="95%">
+				<a href="#" parm2="办公厅">办公厅</a>
+				<a href="#" parm2="法规局">法规局</a>
+				<a href="#" parm2="规划局">规划局</a>
+				<a href="#" parm2="财务监管局">财务监管局</a>
+				<a href="#" parm2="产权局">产权局</a>
+				<a href="#" parm2="改革局">改革局</a>
+				<a href="#" parm2="考核分配局">考核分配局</a>
+				<a href="#" parm2="资本局">资本局</a>
+				<a href="#" parm2="综合局">综合局</a>
+				<a href="#" parm2="监督二局">监督二局</a>
+				<a href="#" parm2="监督三局">监督三局</a>
+				<a href="#" parm2="企干一局">企干一局</a>
+				<a href="#" parm2="企干二局">企干二局</a>
+				<a href="#" parm2="党建局">党建局</a>
+				<a href="#" parm2="宣传局">宣传局</a>
+				<a href="#" parm2="研究局">研究局</a>
+				<a href="#" parm2="国际合作局">国际合作局</a>
+				<a href="#" parm2="人事局">人事局</a>
+				<a href="#" parm2="协会党建局">协会党建局</a>
+				<a href="#" parm2="管理局">管理局</a>
+				<a href="#" parm2="机关党委">机关党委</a>
+				<a href="#" parm2="巡视办">巡视办</a>
+				<a href="#" parm2="中央纪委国家监委驻国资委纪检监察组">中央纪委国家监委驻国资委纪检监察组</a>
+				</td></tr></tbody></table>
+			</div>
+			<div class="lanmu2 lst">
+				<table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td valign="top" width="95%" style="font-weight:bold;">
+				<a href="#" parm3="体裁分类">体裁分类</a>
+				</td></tr></tbody></table>
+			</div>
+			<div class="lanmu2 lst">
+				<table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td valign="top" width="95%">
+				<a href="#" parm3="命令">命令</a>
+				<a href="#" parm3="决定">决定</a>
+				<a href="#" parm3="公告">公告</a>
+				<a href="#" parm3="通知">通知</a>
+				<a href="#" parm3="通报">通报</a>
+				<a href="#" parm3="建议提案">建议提案</a>
+				<a href="#" parm3="意见">意见</a>
+				<a href="#" parm3="函">函</a>
+				<a href="#" parm3="其他">其他</a>
+				</td></tr></tbody></table>
+			</div>
+		</div>
+		<div id="lanmudaohang25">
+			<div class="lanmu2 lst">
+				<table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td valign="top" width="95%">
+				<a href="#" parm="n2588040/n2590382/">在线访谈</a>
+				<a href="#" parm="n2588040/n2590387/">问答选登</a>
+				<a href="#" parm="n2588040/n4285521/">今日e题</a>
+				</td></tr></tbody></table>
+			</div>
+		</div>
+		<div id="lanmudaohang26">
+			<div class="lanmu2 lst">
+				<table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td valign="top" width="95%">
+				<a href="#" parm="n2588045/n2588419/">国资</a>
+				<a href="#" parm="n2588045/n2588424/">央企</a>
+				</td></tr></tbody></table>
+			</div>
+		</div>
+	</div>
+
+	<div style="padding-left:10px;padding-top: 10px;" id="keyword_navigation"></div>
+	
+	<!-- 主体内容 start -->
+	<div class="zsy_srch3" id="info"><ul><li>				<p class="zsy_schead">										<a href="http://www.sasac.gov.cn/n2588025/n2643309/c35486432/content.html" onclick="c('t=%25E6%259D%258E%25E5%25BC%25BA%25E5%259C%25A8%25E8%25BE%25BD%25E5%25AE%2581%25E5%25A4%25A7%25E8%25BF%259E%25E8%25B0%2583%25E7%25A0%2594%25E6%2597%25B6%25E5%25BC%25BA%25E8%25B0%2583%2520%25E5%25A4%25A7%25E5%258A%259B%25E5%258F%2591%25E5%25B1%2595%25E9%25AB%2598%25E7%25AB%25AF%25E8%25A3%2585%25E5%25A4%2587%25E5%2588%25B6%25E9%2580%25A0%25E4%25B8%259A%2520%25E5%258A%25A0%25E5%25BF%25AB%25E5%25BB%25BA%25E8%25AE%25BE%25E7%258E%25B0%25E4%25BB%25A3%25E5%258C%2596%25E4%25BA%25A7%25E4%25B8%259A%25E4%25BD%2593%25E7%25B3%25BB&amp;u=http%3A//www.sasac.gov.cn/n2588025/n2643309/c35486432/content.html&amp;a=eyJ0aXRsZSI6IrX30dAiLCJoaWdobGlnaHRlciI6IjIifQ__&amp;s=0&amp;n=1&amp;i=css')" target="_blank">李强在辽宁大连<font color="red">调研</font>时强调 大力发展高端装备制造业 加快建设现代化产业体系</a>				</p>                <p class="zsy_scdescribe">	              ...            	</p>              	<p class="zsy_scdate">              		www.sasac.gov.cn/n2588025...  2026-06-22                </p>				       </li><li>				<p class="zsy_schead">										<a href="http://www.sasac.gov.cn/n2588025/n2643309/c35453161/content.html" onclick="c('t=%25E5%25BC%25A0%25E5%259B%25BD%25E6%25B8%2585%25E5%259C%25A8%25E9%259D%2592%25E6%25B5%25B7%25E8%25B0%2583%25E7%25A0%2594%25E6%2597%25B6%25E5%25BC%25BA%25E8%25B0%2583%2520%25E9%25AB%2598%25E8%25B4%25A8%25E9%2587%258F%25E6%258E%25A8%25E8%25BF%259B%25E7%259B%2590%25E6%25B9%2596%25E4%25BA%25A7%25E4%25B8%259A%25E5%259F%25BA%25E5%259C%25B0%25E5%25BB%25BA%25E8%25AE%25BE%2520%25E7%259D%2580%25E5%258A%259B%25E6%258F%2590%25E9%25AB%2598%25E9%2598%25B2%25E8%258C%2583%25E5%25BA%2594%25E5%25AF%25B9%25E8%2587%25AA%25E7%2584%25B6%25E7%2581%25BE%25E5%25AE%25B3%25E8%2583%25BD%25E5%258A%259B&amp;u=http%3A//www.sasac.gov.cn/n2588025/n2643309/c35453161/content.html&amp;a=eyJ0aXRsZSI6IrX30dAiLCJoaWdobGlnaHRlciI6IjIifQ__&amp;s=0&amp;n=2&amp;i=css')" target="_blank">张国清在青海<font color="red">调研</font>时强调 高质量推进盐湖产业基地建设 着力提高防范应对自然灾害能力</a>				</p>                <p class="zsy_scdescribe">	              ...            	</p>              	<p class="zsy_scdate">              		www.sasac.gov.cn/n2588025...  2026-06-14                </p>				       </li><li>				<p class="zsy_schead">										<a href="http://www.sasac.gov.cn/n2588020/n2588072/n23746822/n23746853/c35451713/content.html" onclick="c('t=%25E5%25BA%259E%25E9%25AA%2581%25E5%2588%259A%25E8%25B5%25B4%25E5%25B1%25B1%25E8%25A5%25BF%25E7%259D%25A3%25E5%25AF%25BC%25E8%25B0%2583%25E7%25A0%2594%25E4%25B8%25AD%25E5%25A4%25AE%25E4%25BC%2581%25E4%25B8%259A%25E5%25AE%2589%25E5%2585%25A8%25E7%2594%259F%25E4%25BA%25A7%25E5%25B7%25A5%25E4%25BD%259C&amp;u=http%3A//www.sasac.gov.cn/n2588020/n2588072/n23746822/n23746853/c35451713/content.html&amp;a=eyJ0aXRsZSI6IrX30dAiLCJoaWdobGlnaHRlciI6IjIifQ__&amp;s=0&amp;n=3&amp;i=css')" target="_blank">庞骁刚赴山西督导<font color="red">调研</font>中央企业安全生产工作</a>				</p>                <p class="zsy_scdescribe">	              6月8日至9日，国务院国资委党委委员、副主任庞骁刚赴山西深入兵器工业集团所属山西北方兴安化工有限公司、晋西机器工业分公司，中煤集团所属山西小回沟煤业有限公司等企业生产一线、煤矿井下作业面，督导<font color="red">调研</font>安全生产工作。 庞骁刚强调，要深入学习贯彻习近平总书记关于安全生产...作用。 国务院国资委有关厅局负责同志、中央企业相关安全生产专家参加督导<font color="red">调研</font>。...            	</p>              	<p class="zsy_scdate">              		www.sasac.gov.cn/n2588020...  2026-06-11                </p>				                   	<p style="color:#000000; font-size:12px; font-weight:bold; font-family:宋体"><a href="#" onclick="openTR('tFr3');return false;">相似文章</a></p>            	<div id="tFr3" style="display:none">				<table width="630">            	            		<tbody><tr>            		<td width="7%"></td>              		<td width="93%" style="color:#000000; font-size:13px; font-family:宋体">						<a href="http://www.sasac.gov.cn/n2588025/n2643314/c35451713/content.html" style="font-weight:bold" onclick="c('t=%25E5%25BA%259E%25E9%25AA%2581%25E5%2588%259A%25E8%25B5%25B4%25E5%25B1%25B1%25E8%25A5%25BF%25E7%259D%25A3%25E5%25AF%25BC%25E8%25B0%2583%25E7%25A0%2594%25E4%25B8%25AD%25E5%25A4%25AE%25E4%25BC%2581%25E4%25B8%259A%25E5%25AE%2589%25E5%2585%25A8%25E7%2594%259F%25E4%25BA%25A7%25E5%25B7%25A5%25E4%25BD%259C&amp;u=http%3A//www.sasac.gov.cn/n2588025/n2643314/c35451713/content.html&amp;a=eyJ0aXRsZSI6IrX30dAiLCJoaWdobGlnaHRlciI6IjIifQ__&amp;s=0&amp;n=3&amp;i=css')" target="_blank">庞骁刚赴山西督导调研中央企业安全生产工作</a>						 - 2026-06-11					</td>              		</tr>              	            		<tr>            		<td width="7%"></td>              		<td width="93%" style="color:#000000; font-size:13px; font-family:宋体">						<a href="http://www.sasac.gov.cn/n2588020/n2588057/n34699534/n34699549/c35451713/content.html" style="font-weight:bold" onclick="c('t=%25E5%25BA%259E%25E9%25AA%2581%25E5%2588%259A%25E8%25B5%25B4%25E5%25B1%25B1%25E8%25A5%25BF%25E7%259D%25A3%25E5%25AF%25BC%25E8%25B0%2583%25E7%25A0%2594%25E4%25B8%25AD%25E5%25A4%25AE%25E4%25BC%2581%25E4%25B8%259A%25E5%25AE%2589%25E5%2585%25A8%25E7%2594%259F%25E4%25BA%25A7%25E5%25B7%25A5%25E4%25BD%259C&amp;u=http%3A//www.sasac.gov.cn/n2588020/n2588057/n34699534/n34699549/c35451713/content.html&amp;a=eyJ0aXRsZSI6IrX30dAiLCJoaWdobGlnaHRlciI6IjIifQ__&amp;s=0&amp;n=3&amp;i=css')" target="_blank">庞骁刚赴山西督导调研中央企业安全生产工作</a>						 - 2026-06-11					</td>              		</tr>              	</tbody></table>	       		</div>   				       </li><li>				<p class="zsy_schead">										<a href="http://www.sasac.gov.cn/n2588025/n2643309/c35432318/content.html" onclick="c('t=%25E6%259D%258E%25E5%25BC%25BA%25E5%259C%25A8%25E5%258C%2597%25E4%25BA%25AC%25E8%25B0%2583%25E7%25A0%2594%25E6%2597%25B6%25E5%25BC%25BA%25E8%25B0%2583%25EF%25BC%259A%25E6%258E%25A8%25E5%258A%25A8%25E4%25BA%25BA%25E5%25B7%25A5%25E6%2599%25BA%25E8%2583%25BD%25E4%25B8%258E%25E5%2585%2588%25E8%25BF%259B%25E5%2588%25B6%25E9%2580%25A0%25E4%25B8%259A%25E6%25B7%25B1%25E5%25BA%25A6%25E8%259E%258D%25E5%2590%2588%2520%25E5%258A%25A0%25E5%25BF%25AB%25E5%259F%25B9%25E8%2582%25B2%25E5%25A1%2591%25E9%2580%25A0%25E7%25BB%258F%25E6%25B5%258E%25E5%258F%2591%25E5%25B1%2595%25E6%2596%25B0%25E5%258A%25A8%25E8%2583%25BD%25E6%2596%25B0%25E4%25BC%2598%25E5%258A%25BF&amp;u=http%3A//www.sasac.gov.cn/n2588025/n2643309/c35432318/content.html&amp;a=eyJ0aXRsZSI6IrX30dAiLCJoaWdobGlnaHRlciI6IjIifQ__&amp;s=0&amp;n=6&amp;i=css')" target="_blank">李强在北京<font color="red">调研</font>时强调：推动人工智能与先进制造业深度融合 加快培育塑造经济发展新动...</a>				</p>                <p class="zsy_scdescribe">	              ...            	</p>              	<p class="zsy_scdate">              		www.sasac.gov.cn/n2588025...  2026-05-18                </p>				       </li><li>				<p class="zsy_schead">										<a href="http://www.sasac.gov.cn/n2588020/n2877938/n2879597/n2879599/c35413360/content.html" onclick="c('t=%25E5%25BC%25A0%25E7%258E%2589%25E5%258D%2593%25E5%2588%25B0%25E4%25B8%25AD%25E5%2582%25A8%25E7%25B2%25AE%25E9%259B%2586%25E5%259B%25A2%25E8%25B0%2583%25E7%25A0%2594%25E5%25BC%25BA%25E8%25B0%2583%2520%25E5%258A%25A0%25E5%25BF%25AB%25E5%25BB%25BA%25E8%25AE%25BE%25E4%25B8%2596%25E7%2595%258C%25E4%25B8%2580%25E6%25B5%2581%25E5%2586%259C%25E4%25BA%25A7%25E5%2593%2581%25E5%2582%25A8%25E5%25A4%2587%25E9%259B%2586%25E5%259B%25A2%2520%25E6%259B%25B4%25E5%25A5%25BD%25E6%259C%258D%25E5%258A%25A1%25E4%25BF%259D%25E9%259A%259C%25E5%259B%25BD%25E5%25AE%25B6%25E7%25B2%25AE%25E9%25A3%259F%25E5%25AE%2589%25E5%2585%25A8&amp;u=http%3A//www.sasac.gov.cn/n2588020/n2877938/n2879597/n2879599/c35413360/content.html&amp;a=eyJ0aXRsZSI6IrX30dAiLCJoaWdobGlnaHRlciI6IjIifQ__&amp;s=0&amp;n=7&amp;i=css')" target="_blank">张玉卓到中储粮集团<font color="red">调研</font>强调 加快建设世界一流农产品储备集团 更好服务保障国家粮食...</a>				</p>                <p class="zsy_scdescribe">	              4月21日，国务院国资委党委书记、主任张玉卓到中国储备粮管理集团有限公司<font color="red">调研</font>企业改革创新、粮食储备管理及党的建设等工作，强调要深入...安全、加快建设农业强国提供有力支撑。 张玉卓深入<font color="red">调研</font>企业智能化粮库在线监控平台、粮食收储“挂图作战”系统及科技创新成果应用...教育，持续抓好中央巡视整改，纵深推进全面从严治党，为企业更好履行职责使命提供坚强政治保证。 国务院国资委有关厅局负责同志参加<font color="red">调研</font>。...            	</p>              	<p class="zsy_scdate">              		www.sasac.gov.cn/n2588020...  2026-04-22                </p>				                   	<p style="color:#000000; font-size:12px; font-weight:bold; font-family:宋体"><a href="#" onclick="openTR('tFr7');return false;">相似文章</a></p>            	<div id="tFr7" style="display:none">				<table width="630">            	            		<tbody><tr>            		<td width="7%"></td>              		<td width="93%" style="color:#000000; font-size:13px; font-family:宋体">						<a href="http://www.sasac.gov.cn/n2588020/n2588057/n26823304/n26823341/c35413360/content.html" style="font-weight:bold" onclick="c('t=%25E5%25BC%25A0%25E7%258E%2589%25E5%258D%2593%25E5%2588%25B0%25E4%25B8%25AD%25E5%2582%25A8%25E7%25B2%25AE%25E9%259B%2586%25E5%259B%25A2%25E8%25B0%2583%25E7%25A0%2594%25E5%25BC%25BA%25E8%25B0%2583%2520%25E5%258A%25A0%25E5%25BF%25AB%25E5%25BB%25BA%25E8%25AE%25BE%25E4%25B8%2596%25E7%2595%258C%25E4%25B8%2580%25E6%25B5%2581%25E5%2586%259C%25E4%25BA%25A7%25E5%2593%2581%25E5%2582%25A8%25E5%25A4%2587%25E9%259B%2586%25E5%259B%25A2%2520%25E6%259B%25B4%25E5%25A5%25BD%25E6%259C%258D%25E5%258A%25A1%25E4%25BF%259D%25E9%259A%259C%25E5%259B%25BD%25E5%25AE%25B6%25E7%25B2%25AE%25E9%25A3%259F%25E5%25AE%2589%25E5%2585%25A8&amp;u=http%3A//www.sasac.gov.cn/n2588020/n2588057/n26823304/n26823341/c35413360/content.html&amp;a=eyJ0aXRsZSI6IrX30dAiLCJoaWdobGlnaHRlciI6IjIifQ__&amp;s=0&amp;n=7&amp;i=css')" target="_blank">张玉卓到中储粮集团调研强调 加快建设世界一流农产品储备集团 更好服务保障国家粮食...</a>						 - 2026-04-22					</td>              		</tr>              	            		<tr>            		<td width="7%"></td>              		<td width="93%" style="color:#000000; font-size:13px; font-family:宋体">						<a href="http://www.sasac.gov.cn/n2588025/n2643314/c35413360/content.html" style="font-weight:bold" onclick="c('t=%25E5%25BC%25A0%25E7%258E%2589%25E5%258D%2593%25E5%2588%25B0%25E4%25B8%25AD%25E5%2582%25A8%25E7%25B2%25AE%25E9%259B%2586%25E5%259B%25A2%25E8%25B0%2583%25E7%25A0%2594%25E5%25BC%25BA%25E8%25B0%2583%2520%25E5%258A%25A0%25E5%25BF%25AB%25E5%25BB%25BA%25E8%25AE%25BE%25E4%25B8%2596%25E7%2595%258C%25E4%25B8%2580%25E6%25B5%2581%25E5%2586%259C%25E4%25BA%25A7%25E5%2593%2581%25E5%2582%25A8%25E5%25A4%2587%25E9%259B%2586%25E5%259B%25A2%2520%25E6%259B%25B4%25E5%25A5%25BD%25E6%259C%258D%25E5%258A%25A1%25E4%25BF%259D%25E9%259A%259C%25E5%259B%25BD%25E5%25AE%25B6%25E7%25B2%25AE%25E9%25A3%259F%25E5%25AE%2589%25E5%2585%25A8&amp;u=http%3A//www.sasac.gov.cn/n2588025/n2643314/c35413360/content.html&amp;a=eyJ0aXRsZSI6IrX30dAiLCJoaWdobGlnaHRlciI6IjIifQ__&amp;s=0&amp;n=7&amp;i=css')" target="_blank">张玉卓到中储粮集团调研强调 加快建设世界一流农产品储备集团 更好服务保障国家粮食...</a>						 - 2026-04-22					</td>              		</tr>              	</tbody></table>	       		</div>   				       </li><li>				<p class="zsy_schead">										<a href="http://www.sasac.gov.cn/n2588020/n2588072/n2591386/n2591388/c35409056/content.html" onclick="c('t=%25E8%25B0%25AD%25E4%25BD%259C%25E9%2592%25A7%25E8%25B5%25B4%25E5%259B%259B%25E5%25B7%259D%25E8%25B0%2583%25E7%25A0%2594%25E6%259C%2589%25E5%2585%25B3%25E4%25B8%25AD%25E5%25A4%25AE%25E4%25BC%2581%25E4%25B8%259A%25E6%25A0%2591%25E7%25AB%258B%25E5%2592%258C%25E8%25B7%25B5%25E8%25A1%258C%25E6%25AD%25A3%25E7%25A1%25AE%25E6%2594%25BF%25E7%25BB%25A9%25E8%25A7%2582%25E5%25AD%25A6%25E4%25B9%25A0%25E6%2595%2599%25E8%2582%25B2%25E5%25B7%25A5%25E4%25BD%259C&amp;u=http%3A//www.sasac.gov.cn/n2588020/n2588072/n2591386/n2591388/c35409056/content.html&amp;a=eyJ0aXRsZSI6IrX30dAiLCJoaWdobGlnaHRlciI6IjIifQ__&amp;s=0&amp;n=10&amp;i=css')" target="_blank">谭作钧赴四川<font color="red">调研</font>有关中央企业树立和践行正确政绩观学习教育工作</a>				</p>                <p class="zsy_scdescribe">	              4月10日，国务院国资委党委委员、副主任谭作钧到四川成都深入中核集团、航空工业集团所属企业<font color="red">调研</font>树立和践行正确政绩观学习教育工作，通过个别访谈、召开座谈会、实地<font color="red">调研</font>等形式，和企业同志共同学习贯彻习近平总书记关于树立和践行正确政绩观的重要论述，全面落实“立党为公...有关厅局负责同志参加<font color="red">调研</font>。...            	</p>              	<p class="zsy_scdate">              		www.sasac.gov.cn/n2588020...  2026-04-16                </p>				                   	<p style="color:#000000; font-size:12px; font-weight:bold; font-family:宋体"><a href="#" onclick="openTR('tFr10');return false;">相似文章</a></p>            	<div id="tFr10" style="display:none">				<table width="630">            	            		<tbody><tr>            		<td width="7%"></td>              		<td width="93%" style="color:#000000; font-size:13px; font-family:宋体">						<a href="http://www.sasac.gov.cn/n2588025/n2643314/c35409056/content.html" style="font-weight:bold" onclick="c('t=%25E8%25B0%25AD%25E4%25BD%259C%25E9%2592%25A7%25E8%25B5%25B4%25E5%259B%259B%25E5%25B7%259D%25E8%25B0%2583%25E7%25A0%2594%25E6%259C%2589%25E5%2585%25B3%25E4%25B8%25AD%25E5%25A4%25AE%25E4%25BC%2581%25E4%25B8%259A%25E6%25A0%2591%25E7%25AB%258B%25E5%2592%258C%25E8%25B7%25B5%25E8%25A1%258C%25E6%25AD%25A3%25E7%25A1%25AE%25E6%2594%25BF%25E7%25BB%25A9%25E8%25A7%2582%25E5%25AD%25A6%25E4%25B9%25A0%25E6%2595%2599%25E8%2582%25B2%25E5%25B7%25A5%25E4%25BD%259C&amp;u=http%3A//www.sasac.gov.cn/n2588025/n2643314/c35409056/content.html&amp;a=eyJ0aXRsZSI6IrX30dAiLCJoaWdobGlnaHRlciI6IjIifQ__&amp;s=0&amp;n=10&amp;i=css')" target="_blank">谭作钧赴四川调研有关中央企业树立和践行正确政绩观学习教育工作</a>						 - 2026-04-16					</td>              		</tr>              	            		<tr>            		<td width="7%"></td>              		<td width="93%" style="color:#000000; font-size:13px; font-family:宋体">						<a href="http://www.sasac.gov.cn/n2588020/n2588057/n19252954/n19252997/c35409056/content.html" style="font-weight:bold" onclick="c('t=%25E8%25B0%25AD%25E4%25BD%259C%25E9%2592%25A7%25E8%25B5%25B4%25E5%259B%259B%25E5%25B7%259D%25E8%25B0%2583%25E7%25A0%2594%25E6%259C%2589%25E5%2585%25B3%25E4%25B8%25AD%25E5%25A4%25AE%25E4%25BC%2581%25E4%25B8%259A%25E6%25A0%2591%25E7%25AB%258B%25E5%2592%258C%25E8%25B7%25B5%25E8%25A1%258C%25E6%25AD%25A3%25E7%25A1%25AE%25E6%2594%25BF%25E7%25BB%25A9%25E8%25A7%2582%25E5%25AD%25A6%25E4%25B9%25A0%25E6%2595%2599%25E8%2582%25B2%25E5%25B7%25A5%25E4%25BD%259C&amp;u=http%3A//www.sasac.gov.cn/n2588020/n2588057/n19252954/n19252997/c35409056/content.html&amp;a=eyJ0aXRsZSI6IrX30dAiLCJoaWdobGlnaHRlciI6IjIifQ__&amp;s=0&amp;n=10&amp;i=css')" target="_blank">谭作钧赴四川调研有关中央企业树立和践行正确政绩观学习教育工作</a>						 - 2026-04-16					</td>              		</tr>              	            		<tr>            		<td width="7%"></td>              		<td width="93%" style="color:#000000; font-size:13px; font-family:宋体">						<a href="http://www.sasac.gov.cn/n2588020/n2588057/n19252954/n19252992/c35409056/content.html" style="font-weight:bold" onclick="c('t=%25E8%25B0%25AD%25E4%25BD%259C%25E9%2592%25A7%25E8%25B5%25B4%25E5%259B%259B%25E5%25B7%259D%25E8%25B0%2583%25E7%25A0%2594%25E6%259C%2589%25E5%2585%25B3%25E4%25B8%25AD%25E5%25A4%25AE%25E4%25BC%2581%25E4%25B8%259A%25E6%25A0%2591%25E7%25AB%258B%25E5%2592%258C%25E8%25B7%25B5%25E8%25A1%258C%25E6%25AD%25A3%25E7%25A1%25AE%25E6%2594%25BF%25E7%25BB%25A9%25E8%25A7%2582%25E5%25AD%25A6%25E4%25B9%25A0%25E6%2595%2599%25E8%2582%25B2%25E5%25B7%25A5%25E4%25BD%259C&amp;u=http%3A//www.sasac.gov.cn/n2588020/n2588057/n19252954/n19252992/c35409056/content.html&amp;a=eyJ0aXRsZSI6IrX30dAiLCJoaWdobGlnaHRlciI6IjIifQ__&amp;s=0&amp;n=10&amp;i=css')" target="_blank">谭作钧赴四川调研有关中央企业树立和践行正确政绩观学习教育工作</a>						 - 2026-04-16					</td>              		</tr>              	            		<tr>            		<td width="7%"></td>              		<td width="93%" style="color:#000000; font-size:13px; font-family:宋体">						<a href="http://www.sasac.gov.cn/n2588030/n2588919/c35409056/content.html" style="font-weight:bold" onclick="c('t=%25E8%25B0%25AD%25E4%25BD%259C%25E9%2592%25A7%25E8%25B5%25B4%25E5%259B%259B%25E5%25B7%259D%25E8%25B0%2583%25E7%25A0%2594%25E6%259C%2589%25E5%2585%25B3%25E4%25B8%25AD%25E5%25A4%25AE%25E4%25BC%2581%25E4%25B8%259A%25E6%25A0%2591%25E7%25AB%258B%25E5%2592%258C%25E8%25B7%25B5%25E8%25A1%258C%25E6%25AD%25A3%25E7%25A1%25AE%25E6%2594%25BF%25E7%25BB%25A9%25E8%25A7%2582%25E5%25AD%25A6%25E4%25B9%25A0%25E6%2595%2599%25E8%2582%25B2%25E5%25B7%25A5%25E4%25BD%259C&amp;u=http%3A//www.sasac.gov.cn/n2588030/n2588919/c35409056/content.html&amp;a=eyJ0aXRsZSI6IrX30dAiLCJoaWdobGlnaHRlciI6IjIifQ__&amp;s=0&amp;n=10&amp;i=css')" target="_blank">谭作钧赴四川调研有关中央企业树立和践行正确政绩观学习教育工作</a>						 - 2026-04-16					</td>              		</tr>              	</tbody></table>	       		</div>   				       </li><li>				<p class="zsy_schead">										<a href="http://www.sasac.gov.cn/n2588020/n2588072/n2590944/n2590946/c35406584/content.html" onclick="c('t=%25E8%25A2%2581%25E9%2587%258E%25E8%25B5%25B4%25E4%25B8%25AD%25E5%259B%25BD%25E7%2594%25B5%25E4%25BF%25A1%25E8%25B0%2583%25E7%25A0%2594%25E8%25B4%25A2%25E5%258A%25A1%25E6%2595%25B0%25E6%2599%25BA%25E5%258C%2596%25E8%25BD%25AC%25E5%259E%258B%25E5%25B7%25A5%25E4%25BD%259C%25E8%25BF%259B%25E5%25B1%2595&amp;u=http%3A//www.sasac.gov.cn/n2588020/n2588072/n2590944/n2590946/c35406584/content.html&amp;a=eyJ0aXRsZSI6IrX30dAiLCJoaWdobGlnaHRlciI6IjIifQ__&amp;s=0&amp;n=15&amp;i=css')" target="_blank">袁野赴中国电信<font color="red">调研</font>财务数智化转型工作进展</a>				</p>                <p class="zsy_scdescribe">	              4月10日，国务院国资委党委委员、副主任袁野赴中国电信<font color="red">调研</font>，听取了财务数智化转型、DRP系统建设以及穿透监管工作进展情况汇报，并就推动财务数智化转型升级和加强穿透式监管作出工作部署。国务院国资委总会计师孙玉权参加<font color="red">调研</font>。 袁野强调，财务数智化转型升级是落实穿透监管...有关厅局负责同志陪同<font color="red">调研</font>。...            	</p>              	<p class="zsy_scdate">              		www.sasac.gov.cn/n2588020...  2026-04-14                </p>				                   	<p style="color:#000000; font-size:12px; font-weight:bold; font-family:宋体"><a href="#" onclick="openTR('tFr15');return false;">相似文章</a></p>            	<div id="tFr15" style="display:none">				<table width="630">            	            		<tbody><tr>            		<td width="7%"></td>              		<td width="93%" style="color:#000000; font-size:13px; font-family:宋体">						<a href="http://www.sasac.gov.cn/n2588020/n2588057/n14985548/n14985582/c35406584/content.html" style="font-weight:bold" onclick="c('t=%25E8%25A2%2581%25E9%2587%258E%25E8%25B5%25B4%25E4%25B8%25AD%25E5%259B%25BD%25E7%2594%25B5%25E4%25BF%25A1%25E8%25B0%2583%25E7%25A0%2594%25E8%25B4%25A2%25E5%258A%25A1%25E6%2595%25B0%25E6%2599%25BA%25E5%258C%2596%25E8%25BD%25AC%25E5%259E%258B%25E5%25B7%25A5%25E4%25BD%259C%25E8%25BF%259B%25E5%25B1%2595&amp;u=http%3A//www.sasac.gov.cn/n2588020/n2588057/n14985548/n14985582/c35406584/content.html&amp;a=eyJ0aXRsZSI6IrX30dAiLCJoaWdobGlnaHRlciI6IjIifQ__&amp;s=0&amp;n=15&amp;i=css')" target="_blank">袁野赴中国电信调研财务数智化转型工作进展</a>						 - 2026-04-14					</td>              		</tr>              	            		<tr>            		<td width="7%"></td>              		<td width="93%" style="color:#000000; font-size:13px; font-family:宋体">						<a href="http://www.sasac.gov.cn/n2588025/n2643314/c35406584/content.html" style="font-weight:bold" onclick="c('t=%25E8%25A2%2581%25E9%2587%258E%25E8%25B5%25B4%25E4%25B8%25AD%25E5%259B%25BD%25E7%2594%25B5%25E4%25BF%25A1%25E8%25B0%2583%25E7%25A0%2594%25E8%25B4%25A2%25E5%258A%25A1%25E6%2595%25B0%25E6%2599%25BA%25E5%258C%2596%25E8%25BD%25AC%25E5%259E%258B%25E5%25B7%25A5%25E4%25BD%259C%25E8%25BF%259B%25E5%25B1%2595&amp;u=http%3A//www.sasac.gov.cn/n2588025/n2643314/c35406584/content.html&amp;a=eyJ0aXRsZSI6IrX30dAiLCJoaWdobGlnaHRlciI6IjIifQ__&amp;s=0&amp;n=15&amp;i=css')" target="_blank">袁野赴中国电信调研财务数智化转型工作进展</a>						 - 2026-04-14					</td>              		</tr>              	</tbody></table>	       		</div>   				       </li><li>				<p class="zsy_schead">										<a href="http://www.sasac.gov.cn/n2588025/n2643309/c35404095/content.html" onclick="c('t=%25E5%25BC%25A0%25E5%259B%25BD%25E6%25B8%2585%25E5%259C%25A8%25E4%25B8%25AD%25E5%259B%25BD%25E9%259B%2585%25E6%25B1%259F%25E9%259B%2586%25E5%259B%25A2%25E8%25B0%2583%25E7%25A0%2594%25E6%2597%25B6%25E5%25BC%25BA%25E8%25B0%2583%25EF%25BC%259A%25E6%2589%259B%25E7%2589%25A2%25E5%25B7%25A5%25E7%25A8%258B%25E5%25BB%25BA%25E8%25AE%25BE%25E4%25B8%25BB%25E4%25BD%2593%25E8%25B4%25A3%25E4%25BB%25BB%2520%25E5%2585%25A8%25E9%259D%25A2%25E6%258F%2590%25E5%258D%2587%25E8%25BF%2590%25E8%2590%25A5%25E7%25AE%25A1%25E7%2590%2586%25E8%2583%25BD%25E5%258A%259B&amp;u=http%3A//www.sasac.gov.cn/n2588025/n2643309/c35404095/content.html&amp;a=eyJ0aXRsZSI6IrX30dAiLCJoaWdobGlnaHRlciI6IjIifQ__&amp;s=0&amp;n=18&amp;i=css')" target="_blank">张国清在中国雅江集团<font color="red">调研</font>时强调：扛牢工程建设主体责任 全面提升运营管理能力</a>				</p>                <p class="zsy_scdescribe">	              ...            	</p>              	<p class="zsy_scdate">              		www.sasac.gov.cn/n2588025...  2026-04-13                </p>				       </li><li>				<p class="zsy_schead">										<a href="http://www.sasac.gov.cn/n2588025/n2643309/c35402226/content.html" onclick="c('t=%25E5%25BC%25A0%25E5%259B%25BD%25E6%25B8%2585%25E5%259C%25A8%25E5%25B1%25B1%25E4%25B8%259C%25E8%25B0%2583%25E7%25A0%2594%25E6%2597%25B6%25E5%25BC%25BA%25E8%25B0%2583%25EF%25BC%259A%25E5%258A%25A0%25E5%25BF%25AB%25E5%258F%2591%25E5%25B1%2595%25E5%2585%2588%25E8%25BF%259B%25E5%2588%25B6%25E9%2580%25A0%25E4%25B8%259A%25E9%259B%2586%25E7%25BE%25A4%2520%25E8%25BF%259B%25E4%25B8%2580%25E6%25AD%25A5%25E6%25B7%25B1%25E5%258C%2596%25E5%259B%25BD%25E6%259C%2589%25E4%25BC%2581%25E4%25B8%259A%25E6%2594%25B9%25E9%259D%25A9&amp;u=http%3A//www.sasac.gov.cn/n2588025/n2643309/c35402226/content.html&amp;a=eyJ0aXRsZSI6IrX30dAiLCJoaWdobGlnaHRlciI6IjIifQ__&amp;s=0&amp;n=19&amp;i=css')" target="_blank">张国清在山东<font color="red">调研</font>时强调：加快发展先进制造业集群 进一步深化国有企业改革</a>				</p>                <p class="zsy_scdescribe">	              ...            	</p>              	<p class="zsy_scdate">              		www.sasac.gov.cn/n2588025...  2026-04-09                </p>				       </li><li>				<p class="zsy_schead">										<a href="http://www.sasac.gov.cn/n2588025/n2643309/c35393228/content.html" onclick="c('t=%25E6%259D%258E%25E5%25BC%25BA%25E5%259C%25A8%25E5%259B%259B%25E5%25B7%259D%25E8%25B0%2583%25E7%25A0%2594%25E6%2597%25B6%25E5%25BC%25BA%25E8%25B0%2583%25EF%25BC%259A%25E7%259D%2580%25E5%258A%259B%25E6%258E%25A8%25E8%25BF%259B%25E6%2596%25B0%25E5%259E%258B%25E7%2594%25B5%25E7%25BD%2591%25E5%25BB%25BA%25E8%25AE%25BE%2520%25E5%258A%25A0%25E5%25BF%25AB%25E8%2583%25BD%25E6%25BA%2590%25E7%25BB%2593%25E6%259E%2584%25E8%25B0%2583%25E6%2595%25B4%25E4%25BC%2598%25E5%258C%2596%2520%25E4%25B8%25BA%25E7%25BB%258F%25E6%25B5%258E%25E7%25A4%25BE%25E4%25BC%259A%25E9%25AB%2598%25E8%25B4%25A8%25E9%2587%258F%25E5%258F%2591%25E5%25B1%2595%25E6%258F%2590%25E4%25BE%259B%25E6%259C%2589%25E5%258A%259B%25E6%2594%25AF%25E6%2592%2591&amp;u=http%3A//www.sasac.gov.cn/n2588025/n2643309/c35393228/content.html&amp;a=eyJ0aXRsZSI6IrX30dAiLCJoaWdobGlnaHRlciI6IjIifQ__&amp;s=0&amp;n=20&amp;i=css')" target="_blank">李强在四川<font color="red">调研</font>时强调：着力推进新型电网建设 加快能源结构调整优化 为经济社会高质...</a>				</p>                <p class="zsy_scdescribe">	              ...            	</p>              	<p class="zsy_scdate">              		www.sasac.gov.cn/n2588025...  2026-04-02                </p>				       </li></ul></div>
+	<!-- 主体内容 end -->
+
+
+	<!-- 分页 start -->
+	<div class="pages" id="page">	                       <a href="javascript:goPageCache(1)">上一页</a>					                               <a href="#" class="current">1</a>                           					                        		 <a href="javascript:goPageCache(2)">2</a>              		            		<!--                      <a href="javascript:goPageCache(2)" >2</a>                     -->               					                        		 <a href="javascript:goPageCache(3)">3</a>              		            		<!--                      <a href="javascript:goPageCache(3)" >3</a>                     -->               					                        		 <a href="javascript:goPageCache(4)">4</a>              		            		<!--                      <a href="javascript:goPageCache(4)" >4</a>                     -->               					                        		 <a href="javascript:goPageCache(5)">5</a>              		            		<!--                      <a href="javascript:goPageCache(5)" >5</a>                     -->               					                        		 <a href="javascript:goPageCache(6)">6</a>              		            		<!--                      <a href="javascript:goPageCache(6)" >6</a>                     -->               		         <a href="javascript:goPageCache('2')">下一页</a>	        </div>
+	<!-- 分页 end -->
+
+</div>
+
+<div class="sjdiv3">
+	<!--
+	<div class="sl_title1">猜你喜欢</div>
+    <div class="sl_srch2"><ul><li><a href="#">望向中国企业提供物流运输方面的服务一事</a></li></ul></div>
+    -->
+    <!-- 周围人都在搜 start -->
+    <div id="top_word"></div>  
+	<!-- 周围人都在搜 end -->
+	<!-- 访问排行 start -->
+	<div id="top_link"></div>  
+	<!-- 访问排行 end -->
+	
+	<div class="sjdiv">
+    <div class="shijian">
+    	<ul>
+                <li style="line-height:36px; font-size:18px; font-weight:700">时间范围</li>
+                <li><a href="#" id="timeall" class="bm_red12">时间不限</a></li>
+                <li><a href="#" id="timeday" class="time_point">过去1天内</a></li>
+                <li><a href="#" id="timeweek" class="time_point">过去1周内</a></li>
+                <li><a href="#" id="timemonth" class="time_point">过去1月内</a></li>
+                <li><a href="#" id="timeyear" class="time_point">过去1年内</a></li>       
+        </ul>
+     </div>    
+</div>
+	
+</div>
+</div>
+
+</div>
+<script type="text/javascript">
+$(function(){
+	// 2017/12/1 修改排序方式	
+	$("#sort").val("0");
+	$("#keyType").val("fullText");
+	$("#timeRange").val("0");
+				 
+//	if($("#fullText").val()!=""){
+//		goPage(1);
+//	}
+
+	if (jsflIndexSeleted != "") {
+		alert("11");
+//		jsflIndexSeleted="";
+		//$("#daohang").hide();
+		//$("#tiaojian").hide();
+		//$("#sousuokuang").hide();
+		goPage(1);
+	} else if (fullText == "" || fullText.length == 0) {
+		//alert("请输入关键字");
+	} else if (!checkAll(fullText)) {
+		//
+	} else {	
+		goPage(1);
+	}
+});
+</script>
+<iframe style="width:100%;height:250px;border:0px" frameborder="0" src="http://www.sasac.gov.cn/footer_index.html"></iframe>
+
+
+
+
+<div id="ui-datepicker-div" class="ui-datepicker ui-widget ui-widget-content ui-helper-clearfix ui-corner-all ui-helper-hidden-accessible"></div></body></html>
