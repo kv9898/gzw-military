@@ -12,3 +12,7 @@ wheels/
 # Scraping results
 articles/
 search_results.json
+classification.json
+analysis_results.json
+*.jsonl
+*.tmp
