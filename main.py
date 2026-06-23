@@ -15,6 +15,7 @@ import json
 import os
 import re
 import sys
+import time
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -33,6 +34,7 @@ AJAX_ENDPOINT = "http://search.sasac.gov.cn:8080/searchweb/search"
 SEARCH_FORM_URL = "http://search.sasac.gov.cn:8080/searchweb/search_gzw.jsp"
 PAGE_SIZE = 50  # Fetch 50 search results per AJAX page
 OUTPUT_FILE = "articles.jsonl"
+SEARCH_RESULTS_FILE = "search_results.json"
 ANALYSIS_FILE = "analysis_results.json"
 
 # The 10 military industry firms (十大军工集团) with their variant names
@@ -78,12 +80,37 @@ CONTENT_SELECTORS = [
 # Polite scraping
 REQUEST_DELAY = 0.3  # seconds between article fetches
 MAX_RETRIES = 3
+RETRY_DELAY = 2.0  # base delay in seconds for exponential backoff
 HTTP_TIMEOUT = 30.0
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/125.0.0.0 Safari/537.36"
 )
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Utilities
+# ═══════════════════════════════════════════════════════════════════
+
+
+def retry_request(func, *args, max_retries=MAX_RETRIES, label="request", **kwargs):
+    """Call func(*args, **kwargs) with exponential backoff on timeout/error."""
+    last_error = None
+    for attempt in range(max_retries + 1):
+        try:
+            return func(*args, **kwargs)
+        except (httpx.TimeoutException, httpx.ConnectError, httpx.RemoteProtocolError) as e:
+            last_error = e
+            if attempt < max_retries:
+                delay = RETRY_DELAY * (2 ** attempt)
+                print(f"\n  ⚠️  {label} attempt {attempt+1} failed ({e}), "
+                      f"retrying in {delay:.0f}s…")
+                time.sleep(delay)
+        except Exception:
+            # Don't retry on non-network errors (e.g., JSON decode errors)
+            raise
+    raise last_error  # type: ignore[misc]
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -132,12 +159,58 @@ class AnalysisResult:
 # ═══════════════════════════════════════════════════════════════════
 
 
+def _load_search_results_file(filepath: str) -> dict:
+    """Load saved search results if the file exists and matches the current query."""
+    if not os.path.exists(filepath):
+        return {"query": SEARCH_TERM, "total": 0, "pages_fetched": [],
+                "results": [], "seen_urls": []}
+    with open(filepath, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    # Invalidate if query changed (e.g., user modified SEARCH_TERM)
+    if data.get("query") != SEARCH_TERM:
+        print(f"  ⚠️  Saved search results are for query '{data.get('query')}', "
+              f"current query is '{SEARCH_TERM}'. Starting fresh.")
+        return {"query": SEARCH_TERM, "total": 0, "pages_fetched": [],
+                "results": [], "seen_urls": []}
+    return data
+
+
+def _save_search_results_file(filepath: str, data: dict):
+    """Atomically save search results state to disk."""
+    tmp = filepath + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False)
+    os.replace(tmp, filepath)
+
+
+def _parse_search_result(article: dict) -> SearchResult:
+    """Parse a single article dict from the SASAC JSON response into a SearchResult."""
+    title = re.sub(r"<[^>]+>", "", article.get("name", "")).strip()
+    snippet = re.sub(r"<[^>]+>", "", article.get("summaries", "")).strip()
+    return SearchResult(
+        title=title,
+        url=article.get("url", ""),
+        date=article.get("showTime", ""),
+        snippet=snippet,
+        index_number=int(article.get("index_number", 0)),
+        site_name=article.get("indexName", ""),
+    )
+
+
 def fetch_search_results(
     query: str = SEARCH_TERM,
     max_pages: int | None = None,
     page_size: int = PAGE_SIZE,
+    save_file: str = SEARCH_RESULTS_FILE,
 ) -> list[SearchResult]:
-    """Fetch all search results from the SASAC AJAX search endpoint."""
+    """Fetch all search results from the SASAC AJAX search endpoint.
+
+    Saves results incrementally to ``save_file`` after each page so the
+    fetch is resumable.  If the file already exists for the same query,
+    only missing pages are fetched.
+    """
+    save_data = _load_search_results_file(save_file)
+
     headers = {
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
         "X-Requested-With": "XMLHttpRequest",
@@ -159,42 +232,89 @@ def fetch_search_results(
         "searchType": "0",
     }
 
-    results: list[SearchResult] = []
-    seen_urls: set[str] = set()
+    # Rebuild in-memory state from saved file
+    results: list[SearchResult] = [
+        _parse_search_result(a) for a in save_data["results"]
+    ]
+    seen_urls: set[str] = set(save_data["seen_urls"])
+    pages_fetched: set[int] = set(save_data["pages_fetched"])
+
+    if results:
+        print(f"  📄 Resumed {len(results)} search results from {save_file} "
+              f"({len(pages_fetched)} pages already fetched)")
 
     with httpx.Client(timeout=HTTP_TIMEOUT) as client:
-        # Get session cookie
-        client.get(SEARCH_FORM_URL, headers={"User-Agent": USER_AGENT})
+        # Get session cookie (always needed)
+        retry_request(client.get, SEARCH_FORM_URL,
+                      headers={"User-Agent": USER_AGENT})
 
-        # Fetch first page to get total count
-        params = {**base_params, "pageNow": "1"}
-        r1 = client.post(
-            AJAX_ENDPOINT, content=urlencode(params), headers=headers
-        )
-        if r1.status_code != 200:
-            print(f"❌ Search failed: HTTP {r1.status_code}")
+        # Determine total count – prefer saved, otherwise fetch page 1
+        total = save_data.get("total", 0)
+        if total == 0:
+            params = {**base_params, "pageNow": "1"}
+            r1 = retry_request(
+                client.post, AJAX_ENDPOINT,
+                content=urlencode(params), headers=headers,
+                label="search page 1",
+            )
+            if r1.status_code != 200:
+                print(f"❌ Search failed: HTTP {r1.status_code}")
+                return results
+
+            page1_data = r1.json()
+            total = int(page1_data.get("num", 0))
+            save_data["total"] = total
+
+            # Process page 1 results if we haven't already
+            if 1 not in pages_fetched:
+                articles = page1_data.get("array", [])
+                for a in articles:
+                    url = a.get("url", "")
+                    if url in seen_urls:
+                        continue
+                    seen_urls.add(url)
+                    sr = _parse_search_result(a)
+                    results.append(sr)
+                    save_data["results"].append(a)
+                    save_data["seen_urls"].append(url)
+                pages_fetched.add(1)
+                save_data["pages_fetched"].append(1)
+                _save_search_results_file(save_file, save_data)
+
+        if total == 0:
+            print("  No search results found.")
             return results
 
-        data = r1.json()
-        total = int(data.get("num", 0))
-        total_pages = (total + page_size - 1) // page_size if total else 0
+        total_pages = (total + page_size - 1) // page_size
         if max_pages:
             total_pages = min(total_pages, max_pages)
 
         print(f"  Total search results: {total}")
         print(f"  Pages to fetch: {total_pages} (page size: {page_size})")
+        if pages_fetched:
+            print(f"  Already fetched: {len(pages_fetched)} pages, "
+                  f"{total_pages - len(pages_fetched)} remaining")
 
-        # Process pages with progress bar
+        # Build page list, skipping already-fetched pages
+        remaining_pages = [
+            p for p in range(1, total_pages + 1) if p not in pages_fetched
+        ]
+
+        if not remaining_pages:
+            print("  ✅ All pages already fetched!")
+            return results
+
         pbar = tqdm(total=total_pages, desc="  Searching SASAC", unit="page",
+                     initial=len(pages_fetched),
                      ncols=80, bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} pages")
 
-        for page in range(1, total_pages + 1):
-            params["pageNow"] = str(page)
+        for page in remaining_pages:
+            params = {**base_params, "pageNow": str(page)}
             try:
-                r = client.post(
-                    AJAX_ENDPOINT,
-                    content=urlencode(params),
-                    headers=headers,
+                r = retry_request(
+                    client.post, AJAX_ENDPOINT,
+                    content=urlencode(params), headers=headers,
+                    label=f"search page {page}",
                 )
                 if r.status_code != 200:
                     print(f"\n  ⚠️ Page {page}: HTTP {r.status_code}, stopping")
@@ -203,7 +323,7 @@ def fetch_search_results(
                 data = r.json()
                 articles = data.get("array", [])
                 if not articles:
-                    print(f"\n  Page {page}: empty, stopping")
+                    print(f"\n  ⚠️ Page {page}: empty, stopping")
                     break
 
                 for a in articles:
@@ -211,28 +331,27 @@ def fetch_search_results(
                     if url in seen_urls:
                         continue
                     seen_urls.add(url)
-                    title = re.sub(r"<[^>]+>", "", a.get("name", "")).strip()
-                    snippet = re.sub(r"<[^>]+>", "", a.get("summaries", "")).strip()
-                    results.append(
-                        SearchResult(
-                            title=title,
-                            url=url,
-                            date=a.get("showTime", ""),
-                            snippet=snippet,
-                            index_number=int(a.get("index_number", 0)),
-                            site_name=a.get("indexName", ""),
-                        )
-                    )
+                    results.append(_parse_search_result(a))
+                    save_data["results"].append(a)
+                    save_data["seen_urls"].append(url)
+
+                pages_fetched.add(page)
+                save_data["pages_fetched"].append(page)
+                _save_search_results_file(save_file, save_data)
 
             except Exception as e:
-                print(f"\n  ⚠️ Page {page} error: {e}")
+                print(f"\n  ⚠️ Page {page} error: {e}, stopping "
+                      f"(results saved to {save_file})")
                 break
 
             pbar.update(1)
 
         pbar.close()
 
-    print(f"  ✅ Collected {len(results)} unique articles")
+    # All done – write final state
+    _save_search_results_file(save_file, save_data)
+    print(f"  ✅ Collected {len(results)} unique articles "
+          f"(saved to {save_file})")
     return results
 
 
