@@ -2,12 +2,15 @@
 
 Pipeline:
   1. Search SASAC for "调研" via AJAX endpoint (httpx, no browser needed)
-  2. Fetch full text of each article, saving incrementally to articles.jsonl
+  2. Fetch full text of each article, saving each as articles/NNNNN.json
   3. Classify each article for mentions of the 10 military industry firms
   4. Report proportion, per-firm breakdown, and per-month breakdown
 
+All steps are resumable – just re-run the script and it picks up where
+it left off.
+
 Usage:
-  uv run python main.py          # fresh run (or resume from articles.jsonl)
+  uv run python main.py          # fresh run (or resume from saved state)
 """
 
 import asyncio
@@ -33,7 +36,6 @@ SEARCH_TERM = "调研"
 AJAX_ENDPOINT = "http://search.sasac.gov.cn:8080/searchweb/search"
 SEARCH_FORM_URL = "http://search.sasac.gov.cn:8080/searchweb/search_gzw.jsp"
 PAGE_SIZE = 50  # Fetch 50 search results per AJAX page
-OUTPUT_FILE = "articles.jsonl"
 ARTICLES_DIR = "articles"
 SEARCH_RESULTS_FILE = "search_results.json"
 CLASSIFICATION_FILE = "classification.json"
