@@ -35,6 +35,7 @@ SEARCH_FORM_URL = "http://search.sasac.gov.cn:8080/searchweb/search_gzw.jsp"
 PAGE_SIZE = 50  # Fetch 50 search results per AJAX page
 OUTPUT_FILE = "articles.jsonl"
 SEARCH_RESULTS_FILE = "search_results.json"
+CLASSIFICATION_FILE = "classification.json"
 ANALYSIS_FILE = "analysis_results.json"
 
 # The 10 military industry firms (十大军工集团) with their variant names
@@ -566,22 +567,107 @@ def classify_article(text: str) -> set[str]:
     return firms
 
 
+def _load_classification_cache(
+    filepath: str, fetched_map: dict[str, tuple[SearchResult, str, str | None]],
+) -> tuple[dict[str, set[str]], set[str]]:
+    """Load previously-saved classification results.
+
+    Returns (url_to_firms, classified_urls).  Entries whose URL is no longer
+    in ``fetched_map`` are dropped.
+    """
+    url_to_firms: dict[str, set[str]] = {}
+    if not os.path.exists(filepath):
+        return url_to_firms, set()
+
+    with open(filepath, "r", encoding="utf-8") as f:
+        cache_data = json.load(f)
+
+    for url, firms_list in cache_data.get("classified", {}).items():
+        if url in fetched_map:
+            url_to_firms[url] = set(firms_list)
+    return url_to_firms, set(url_to_firms.keys())
+
+
+def _save_classification_cache(
+    filepath: str, url_to_firms: dict[str, set[str]],
+):
+    """Save classification state to disk."""
+    serializable = {url: sorted(firms) for url, firms in url_to_firms.items()}
+    tmp = filepath + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump({"classified": serializable}, f, ensure_ascii=False)
+    os.replace(tmp, filepath)
+
+
 def classify_all(
     fetched: list[tuple[SearchResult, str, str | None]],
+    cache_file: str = CLASSIFICATION_FILE,
 ) -> tuple[list[tuple[SearchResult, set[str]]], list[tuple[SearchResult, str]]]:
-    """Classify all fetched articles."""
+    """Classify all fetched articles for military industry firm mentions.
+
+    Saves results incrementally to ``cache_file`` so re-runs skip
+    already-classified articles.
+    """
+    # Build lookup map from URL → (sr, text, err)
+    fetched_map: dict[str, tuple[SearchResult, str, str | None]] = {}
+    for sr, text, err in fetched:
+        fetched_map[sr.url] = (sr, text, err)
+
+    # Load existing classification cache
+    url_to_firms, classified_urls = _load_classification_cache(
+        cache_file, fetched_map
+    )
+
+    if classified_urls:
+        print(f"  📄 Resumed {len(classified_urls)} already-classified articles "
+              f"from {cache_file}")
+
     classified: list[tuple[SearchResult, set[str]]] = []
     errors: list[tuple[SearchResult, str]] = []
 
-    for sr, text, error in tqdm(fetched, desc="  Classifying", unit=" articles",
-                                 ncols=80, bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}"):
+    # Build the final list in the same order as ``fetched``
+    pbar = tqdm(total=len(fetched), desc="  Classifying", unit="art",
+                initial=len(classified_urls),
+                ncols=80, bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} "
+                                      "[{elapsed}]")
+
+    pbar_update_batch = 0  # Save cache every N new classifications
+
+    for sr, text, error in fetched:
+        if sr.url in url_to_firms:
+            # Already classified – reuse cached result
+            firms = url_to_firms[sr.url]
+            if error:
+                errors.append((sr, error))
+            classified.append((sr, firms))
+            pbar.update(1)
+            continue
+
         if error:
             errors.append((sr, error))
             firms = classify_article(sr.snippet) if sr.snippet else set()
         else:
             firms = classify_article(text)
-        classified.append((sr, firms))
 
+        classified.append((sr, firms))
+        url_to_firms[sr.url] = firms
+
+        pbar.update(1)
+        pbar_update_batch += 1
+
+        # Save periodically (every 500 articles) to disk
+        if pbar_update_batch >= 500:
+            _save_classification_cache(cache_file, url_to_firms)
+            pbar_update_batch = 0
+
+    pbar.close()
+
+    # Final save
+    _save_classification_cache(cache_file, url_to_firms)
+
+    mil_count = sum(1 for _, firms in classified if firms)
+    print(f"  ✅ Classified {len(classified)} articles "
+          f"({mil_count} military-related)")
     return classified, errors
 
 
@@ -744,8 +830,10 @@ def main():
     # ── Output files summary ──
     article_count = sum(1 for _ in open(OUTPUT_FILE)) if os.path.exists(OUTPUT_FILE) else 0
     print(f"\n📁 Output files:")
-    print(f"   {OUTPUT_FILE}   — {article_count} articles with full text (JSONL)")
-    print(f"   {ANALYSIS_FILE} — aggregate statistics & classification")
+    print(f"   {SEARCH_RESULTS_FILE}   — {len(search_results)} search result links")
+    print(f"   {OUTPUT_FILE}           — {article_count} articles with full text (JSONL)")
+    print(f"   {CLASSIFICATION_FILE} — classification cache (resume-safe)")
+    print(f"   {ANALYSIS_FILE}         — aggregate statistics")
 
 
 if __name__ == "__main__":
