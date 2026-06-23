@@ -8,3 +8,7 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Scraping results
+articles/
+search_results.json
