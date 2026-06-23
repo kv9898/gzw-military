@@ -2,9 +2,12 @@
 
 Pipeline:
   1. Search SASAC for "调研" via AJAX endpoint (httpx, no browser needed)
-  2. Fetch full text of each article
+  2. Fetch full text of each article, saving incrementally to articles.jsonl
   3. Classify each article for mentions of the 10 military industry firms
   4. Report proportion, per-firm breakdown, and per-month breakdown
+
+Usage:
+  uv run python main.py          # fresh run (or resume from articles.jsonl)
 """
 
 import asyncio
@@ -12,15 +15,14 @@ import json
 import os
 import re
 import sys
-import time
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime
-from pathlib import Path
 from urllib.parse import urlencode
 
 import httpx
 from bs4 import BeautifulSoup
+from tqdm import tqdm
 
 # ═══════════════════════════════════════════════════════════════════
 # Constants
@@ -29,7 +31,9 @@ from bs4 import BeautifulSoup
 SEARCH_TERM = "调研"
 AJAX_ENDPOINT = "http://search.sasac.gov.cn:8080/searchweb/search"
 SEARCH_FORM_URL = "http://search.sasac.gov.cn:8080/searchweb/search_gzw.jsp"
-PAGE_SIZE = 50  # Fetch 50 results per page (max observed: 20; try 50)
+PAGE_SIZE = 50  # Fetch 50 search results per AJAX page
+OUTPUT_FILE = "articles.jsonl"
+ANALYSIS_FILE = "analysis_results.json"
 
 # The 10 military industry firms (十大军工集团) with their variant names
 MILITARY_FIRMS: dict[str, list[str]] = {
@@ -133,11 +137,7 @@ def fetch_search_results(
     max_pages: int | None = None,
     page_size: int = PAGE_SIZE,
 ) -> list[SearchResult]:
-    """Fetch all search results from the SASAC AJAX search endpoint.
-
-    Paginates through all available pages (or up to max_pages) and returns
-    a deduplicated list of SearchResult objects.
-    """
+    """Fetch all search results from the SASAC AJAX search endpoint."""
     headers = {
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
         "X-Requested-With": "XMLHttpRequest",
@@ -164,103 +164,102 @@ def fetch_search_results(
 
     with httpx.Client(timeout=HTTP_TIMEOUT) as client:
         # Get session cookie
-        print(f"  Getting session from {SEARCH_FORM_URL} …")
-        r0 = client.get(SEARCH_FORM_URL, headers={"User-Agent": USER_AGENT})
-        cookies = r0.cookies
+        client.get(SEARCH_FORM_URL, headers={"User-Agent": USER_AGENT})
 
         # Fetch first page to get total count
         params = {**base_params, "pageNow": "1"}
         r1 = client.post(
-            AJAX_ENDPOINT, content=urlencode(params), headers=headers, cookies=cookies
+            AJAX_ENDPOINT, content=urlencode(params), headers=headers
         )
         if r1.status_code != 200:
-            print(f"  ❌ Search failed: HTTP {r1.status_code}")
+            print(f"❌ Search failed: HTTP {r1.status_code}")
             return results
 
         data = r1.json()
         total = int(data.get("num", 0))
-        articles = data.get("array", [])
         total_pages = (total + page_size - 1) // page_size if total else 0
-
-        print(f"  Total results: {total}")
-        print(f"  Page size: {page_size}")
-        print(f"  Total pages: {total_pages}")
-
         if max_pages:
             total_pages = min(total_pages, max_pages)
 
-        # Process first page
-        _extract_results(articles, results, seen_urls)
-        print(f"  Page 1/{total_pages}: {len(articles)} articles (total collected: {len(results)})")
+        print(f"  Total search results: {total}")
+        print(f"  Pages to fetch: {total_pages} (page size: {page_size})")
 
-        # Fetch remaining pages
-        for page in range(2, total_pages + 1):
+        # Process pages with progress bar
+        pbar = tqdm(total=total_pages, desc="  Searching SASAC", unit="page",
+                     ncols=80, bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} pages")
+
+        for page in range(1, total_pages + 1):
             params["pageNow"] = str(page)
             try:
                 r = client.post(
                     AJAX_ENDPOINT,
                     content=urlencode(params),
                     headers=headers,
-                    cookies=cookies,
                 )
                 if r.status_code != 200:
-                    print(f"  ⚠️ Page {page}: HTTP {r.status_code}, stopping")
+                    print(f"\n  ⚠️ Page {page}: HTTP {r.status_code}, stopping")
                     break
 
                 data = r.json()
                 articles = data.get("array", [])
                 if not articles:
-                    print(f"  Page {page}: no articles, stopping")
+                    print(f"\n  Page {page}: empty, stopping")
                     break
 
-                _extract_results(articles, results, seen_urls)
-                if page % 10 == 0 or page == total_pages:
-                    print(f"  Page {page}/{total_pages}: collected {len(results)} unique articles so far")
+                for a in articles:
+                    url = a.get("url", "")
+                    if url in seen_urls:
+                        continue
+                    seen_urls.add(url)
+                    title = re.sub(r"<[^>]+>", "", a.get("name", "")).strip()
+                    snippet = re.sub(r"<[^>]+>", "", a.get("summaries", "")).strip()
+                    results.append(
+                        SearchResult(
+                            title=title,
+                            url=url,
+                            date=a.get("showTime", ""),
+                            snippet=snippet,
+                            index_number=int(a.get("index_number", 0)),
+                            site_name=a.get("indexName", ""),
+                        )
+                    )
 
             except Exception as e:
-                print(f"  ⚠️ Page {page} error: {e}")
+                print(f"\n  ⚠️ Page {page} error: {e}")
                 break
 
-            # Small delay between pages
-            time.sleep(0.1)
+            pbar.update(1)
+
+        pbar.close()
 
     print(f"  ✅ Collected {len(results)} unique articles")
     return results
 
 
-def _extract_results(
-    articles: list[dict], results: list[SearchResult], seen_urls: set[str]
-) -> None:
-    """Extract SearchResult objects from AJAX response array, deduplicating by URL."""
-    for a in articles:
-        url = a.get("url", "")
-        if url in seen_urls:
-            continue
-        seen_urls.add(url)
-
-        # Clean HTML tags from title
-        title = a.get("name", "")
-        title = re.sub(r"<[^>]+>", "", title).strip()
-
-        # Clean HTML from snippet
-        snippet = a.get("summaries", "")
-        snippet = re.sub(r"<[^>]+>", "", snippet).strip()
-
-        results.append(
-            SearchResult(
-                title=title,
-                url=url,
-                date=a.get("showTime", ""),
-                snippet=snippet,
-                index_number=int(a.get("index_number", 0)),
-                site_name=a.get("indexName", ""),
-            )
-        )
-
-
 # ═══════════════════════════════════════════════════════════════════
-# Step 2: Fetch full article text
+# Step 2: Fetch full article text (with resume support)
 # ═══════════════════════════════════════════════════════════════════
+
+
+def load_already_fetched(output_file: str) -> set[str]:
+    """Read existing output file and return set of already-fetched URLs."""
+    fetched_urls: set[str] = set()
+    if os.path.exists(output_file):
+        with open(output_file, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    record = json.loads(line)
+                    url = record.get("url", "")
+                    if url and not record.get("error"):
+                        fetched_urls.add(url)
+                except json.JSONDecodeError:
+                    continue
+        if fetched_urls:
+            print(f"  📄 Found {len(fetched_urls)} already-fetched articles in {output_file}")
+    return fetched_urls
 
 
 async def fetch_article_text(
@@ -282,17 +281,18 @@ async def fetch_article_text(
             for sel in CONTENT_SELECTORS:
                 el = soup.select_one(sel)
                 if el:
-                    # Remove script/style tags
                     for tag in el.select("script, style, nav, .nav, .sidebar, .footer"):
                         tag.decompose()
                     text = el.get_text(separator="\n", strip=True)
-                    if len(text) > 100:  # Sanity check: real content
+                    if len(text) > 100:
                         return text, None
 
             # Fallback: use body text
             body = soup.find("body")
             if body:
-                for tag in body.select("script, style, nav, .nav, .sidebar, .footer, header, .header"):
+                for tag in body.select(
+                    "script, style, nav, .nav, .sidebar, .footer, header, .header"
+                ):
                     tag.decompose()
                 text = body.get_text(separator="\n", strip=True)
                 if len(text) > 50:
@@ -302,12 +302,12 @@ async def fetch_article_text(
 
         except httpx.TimeoutException:
             if attempt < MAX_RETRIES - 1:
-                await asyncio.sleep(2 ** attempt)
+                await asyncio.sleep(2**attempt)
             else:
                 return "", "Timeout"
         except Exception as e:
             if attempt < MAX_RETRIES - 1:
-                await asyncio.sleep(2 ** attempt)
+                await asyncio.sleep(2**attempt)
             else:
                 return "", str(e)
 
@@ -316,28 +316,42 @@ async def fetch_article_text(
 
 async def fetch_all_articles(
     results: list[SearchResult],
+    output_file: str = OUTPUT_FILE,
     concurrency: int = 5,
-    output_file: str | None = "articles.jsonl",
+    resume: bool = True,
 ) -> list[tuple[SearchResult, str, str | None]]:
     """Fetch full text for all search results with controlled concurrency.
 
-    Saves each article's full text + metadata to output_file (JSONL format)
-    as they are fetched, so progress is preserved even if the script crashes.
-
-    Returns list of (SearchResult, article_text, error_string).
+    Saves each article incrementally to output_file (JSONL). On resume,
+    skips articles already present in the output file.
     """
-    semaphore = asyncio.Semaphore(concurrency)
-    total = len(results)
-    completed = 0
-    write_lock = asyncio.Lock()
+    # Determine which articles need fetching
+    already_fetched: set[str] = set()
+    if resume:
+        already_fetched = load_already_fetched(output_file)
 
-    # Open output file for incremental writing
-    out_fp = None
-    if output_file:
-        out_fp = open(output_file, "w", encoding="utf-8")
+    todo = [sr for sr in results if sr.url not in already_fetched]
+    skipped = len(results) - len(todo)
+
+    if skipped > 0:
+        print(f"  ⏭️  Skipping {skipped} already-fetched articles")
+    if not todo:
+        print("  ✅ All articles already fetched!")
+        # Load existing data from file for classification
+        gathered = _load_existing_results(output_file, results)
+        return gathered
+
+    print(f"  Fetching {len(todo)} remaining articles "
+          f"(concurrency: {concurrency}, delay: {REQUEST_DELAY}s)")
+
+    semaphore = asyncio.Semaphore(concurrency)
+    write_lock = asyncio.Lock()
+    pbar = tqdm(total=len(todo), desc="  Fetching articles", unit="art",
+                ncols=80, bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}]")
+
+    out_fp = open(output_file, "a", encoding="utf-8")  # append mode for resume
 
     async def fetch_one(sr: SearchResult):
-        nonlocal completed
         async with semaphore:
             await asyncio.sleep(REQUEST_DELAY)
             async with httpx.AsyncClient(
@@ -346,42 +360,73 @@ async def fetch_all_articles(
                 follow_redirects=True,
             ) as client:
                 text, error = await fetch_article_text(client, sr.url)
-                completed += 1
-                if completed % 50 == 0 or completed == total:
-                    err_count = sum(1 for _, _, e in gathered if e)
-                    print(f"  Fetched {completed}/{total} articles ({err_count} errors)")
+
+                # Write incrementally
+                async with write_lock:
+                    record = {
+                        "title": sr.title,
+                        "url": sr.url,
+                        "date": sr.date,
+                        "site_name": sr.site_name,
+                        "text": text if not error else None,
+                        "error": error,
+                    }
+                    out_fp.write(json.dumps(record, ensure_ascii=False) + "\n")
+                    out_fp.flush()
+
+                pbar.update(1)
                 return sr, text, error
 
-    async def fetch_and_save(sr: SearchResult):
-        sr_result, text, error = await fetch_one(sr)
-        # Write to JSONL incrementally
-        if out_fp and write_lock:
-            async with write_lock:
-                record = {
-                    "title": sr_result.title,
-                    "url": sr_result.url,
-                    "date": sr_result.date,
-                    "site_name": sr_result.site_name,
-                    "text": text if not error else None,
-                    "error": error,
-                }
-                out_fp.write(json.dumps(record, ensure_ascii=False) + "\n")
-                out_fp.flush()
-        return sr_result, text, error
-
     gathered: list[tuple[SearchResult, str, str | None]] = []
+
+    # Add pre-existing results from the file before fetching new ones
+    if skipped > 0:
+        pre_existing = _load_existing_results(output_file, results)
+        gathered.extend(pre_existing)
+
+    # Fetch remaining articles in batches
     batch_size = 100
     try:
-        for i in range(0, total, batch_size):
-            batch = results[i: i + batch_size]
-            tasks = [fetch_and_save(sr) for sr in batch]
+        for i in range(0, len(todo), batch_size):
+            batch = todo[i : i + batch_size]
+            tasks = [fetch_one(sr) for sr in batch]
             batch_results = await asyncio.gather(*tasks)
             gathered.extend(batch_results)
     finally:
-        if out_fp:
-            out_fp.close()
-            if output_file:
-                print(f"  📄 Article texts saved to {output_file}")
+        pbar.close()
+        out_fp.close()
+
+    ok = sum(1 for _, _, e in gathered if not e)
+    print(f"  ✅ {ok}/{len(gathered)} articles fetched successfully")
+    print(f"  📄 Article texts saved to {output_file}")
+    return gathered
+
+
+def _load_existing_results(
+    output_file: str, results: list[SearchResult]
+) -> list[tuple[SearchResult, str, str | None]]:
+    """Load previously-fetched articles from the JSONL output file."""
+    url_to_result = {sr.url: sr for sr in results}
+    gathered: list[tuple[SearchResult, str, str | None]] = []
+
+    if not os.path.exists(output_file):
+        return gathered
+
+    with open(output_file, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                record = json.loads(line)
+                url = record.get("url", "")
+                sr = url_to_result.get(url)
+                if sr:
+                    text = record.get("text") or ""
+                    error = record.get("error")
+                    gathered.append((sr, text, error))
+            except json.JSONDecodeError:
+                continue
 
     return gathered
 
@@ -394,7 +439,6 @@ async def fetch_all_articles(
 def classify_article(text: str) -> set[str]:
     """Return set of canonical firm names mentioned in the article text."""
     matched_variants = set(FIRM_PATTERN.findall(text))
-    # Map variants to canonical names
     firms = set()
     for variant in matched_variants:
         firm = VARIANT_TO_FIRM.get(variant)
@@ -406,19 +450,14 @@ def classify_article(text: str) -> set[str]:
 def classify_all(
     fetched: list[tuple[SearchResult, str, str | None]],
 ) -> tuple[list[tuple[SearchResult, set[str]]], list[tuple[SearchResult, str]]]:
-    """Classify all fetched articles.
-
-    Returns:
-      - classified: list of (SearchResult, set of matched firm names)
-      - errors: list of (SearchResult, error_string) for articles that failed to fetch
-    """
+    """Classify all fetched articles."""
     classified: list[tuple[SearchResult, set[str]]] = []
     errors: list[tuple[SearchResult, str]] = []
 
-    for sr, text, error in fetched:
+    for sr, text, error in tqdm(fetched, desc="  Classifying", unit=" articles",
+                                 ncols=80, bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}"):
         if error:
             errors.append((sr, error))
-            # Try classifying from snippet as fallback
             firms = classify_article(sr.snippet) if sr.snippet else set()
         else:
             firms = classify_article(text)
@@ -445,7 +484,6 @@ def analyze(
             for firm in firms:
                 result.per_firm[firm] += 1
 
-        # Per-month breakdown
         if sr.date_obj:
             month_key = sr.date_obj.strftime("%Y-%m")
             if month_key not in result.per_month:
@@ -464,16 +502,15 @@ def print_report(result: AnalysisResult, classified, errors):
     print("RESULTS: Military Industry Firm Mentions in SASAC '调研' Articles")
     print("=" * 70)
 
-    # 1. Overall proportion
     pct = result.proportion * 100
     print(f"\n📊 OVERALL")
     print(f"   Total articles:     {result.total_articles}")
     print(f"   Military-related:   {result.military_articles}")
-    print(f"   Proportion:         {result.military_articles}/{result.total_articles} = {pct:.1f}%")
+    print(f"   Proportion:         {pct:.1f}% "
+          f"({result.military_articles}/{result.total_articles})")
     if errors:
         print(f"   Fetch errors:       {len(errors)}")
 
-    # 2. Per-firm breakdown
     print(f"\n🏭 PER-FIRM BREAKDOWN")
     if result.per_firm:
         for firm, count in result.per_firm.most_common():
@@ -482,7 +519,6 @@ def print_report(result: AnalysisResult, classified, errors):
     else:
         print("   No military industry firm mentions found.")
 
-    # 3. Per-month breakdown
     print(f"\n📅 PER-MONTH BREAKDOWN")
     print(f"   {'Month':<10} {'Total':>6} {'Military':>10} {'Proportion':>12}")
     print(f"   {'-'*10} {'-'*6} {'-'*10} {'-'*12}")
@@ -492,7 +528,7 @@ def print_report(result: AnalysisResult, classified, errors):
         mpct = (m / t * 100) if t > 0 else 0
         print(f"   {month:<10} {t:>6} {m:>10} {mpct:>11.1f}%")
 
-    # 4. Top articles by number of firms mentioned
+    # Top multi-firm articles
     print(f"\n📰 TOP ARTICLES (most firms mentioned)")
     multi_firm = [(sr, firms) for sr, firms in classified if len(firms) > 1]
     multi_firm.sort(key=lambda x: -len(x[1]))
@@ -501,7 +537,7 @@ def print_report(result: AnalysisResult, classified, errors):
         print(f"     Firms: {', '.join(sorted(firms))}")
         print(f"     {sr.url}")
 
-    # 5. Sample non-military articles
+    # Sample non-military articles
     non_mil = [(sr, firms) for sr, firms in classified if not firms]
     if non_mil:
         print(f"\n📋 SAMPLE NON-MILITARY ARTICLES (first 5)")
@@ -513,9 +549,9 @@ def save_results(
     result: AnalysisResult,
     classified: list[tuple[SearchResult, set[str]]],
     errors: list[tuple[SearchResult, str]],
-    filename: str = "analysis_results.json",
+    filename: str = ANALYSIS_FILE,
 ):
-    """Save full results to JSON."""
+    """Save full analysis results to JSON."""
     output = {
         "summary": {
             "total_articles": result.total_articles,
@@ -529,12 +565,8 @@ def save_results(
             for month, stats in sorted(result.per_month.items())
         },
         "military_articles": [
-            {
-                "title": sr.title,
-                "url": sr.url,
-                "date": sr.date,
-                "firms": sorted(firms),
-            }
+            {"title": sr.title, "url": sr.url, "date": sr.date,
+             "firms": sorted(firms)}
             for sr, firms in classified
             if firms
         ],
@@ -549,7 +581,7 @@ def save_results(
     }
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(output, f, ensure_ascii=False, indent=2)
-    print(f"\n📄 Full results saved to {filename}")
+    print(f"\n📄 Analysis saved to {filename}")
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -570,33 +602,31 @@ def main():
         print("❌ No search results found. Exiting.")
         sys.exit(1)
 
-    # ── Step 2: Fetch article texts ──
+    # ── Step 2: Fetch article texts (with resume support) ──
     print(f"\n📄 STEP 2: Fetching full text for {len(search_results)} articles…")
-    fetched = asyncio.run(fetch_all_articles(search_results))
+    fetched = asyncio.run(fetch_all_articles(search_results, resume=True))
 
-    # Count errors
     errs = [(sr, e) for sr, _, e in fetched if e]
     ok_count = len(fetched) - len(errs)
-    print(f"  ✅ {ok_count} articles fetched successfully, {len(errs)} errors")
+    print(f"  ✅ {ok_count} articles OK, {len(errs)} errors")
 
     # ── Step 3: Classify ──
     print(f"\n🔍 STEP 3: Classifying articles for military industry firm mentions…")
     classified, classify_errors = classify_all(fetched)
-    all_errors = errs + classify_errors  # fetch errors + classification fallback errors
+    all_errors = errs + classify_errors
 
     # ── Step 4: Analyze & report ──
     print(f"\n📊 STEP 4: Analyzing results…")
     result = analyze(classified)
 
-    # ── Print report ──
     print_report(result, classified, all_errors)
-
-    # ── Save analysis JSON ──
     save_results(result, classified, all_errors)
 
-    print("\n📁 Output files:")
-    print(f"   articles.jsonl       — all {len(search_results)} articles with full text")
-    print("   analysis_results.json — aggregate statistics & classification")
+    # ── Output files summary ──
+    article_count = sum(1 for _ in open(OUTPUT_FILE)) if os.path.exists(OUTPUT_FILE) else 0
+    print(f"\n📁 Output files:")
+    print(f"   {OUTPUT_FILE}   — {article_count} articles with full text (JSONL)")
+    print(f"   {ANALYSIS_FILE} — aggregate statistics & classification")
 
 
 if __name__ == "__main__":
