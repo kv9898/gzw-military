@@ -34,6 +34,7 @@ AJAX_ENDPOINT = "http://search.sasac.gov.cn:8080/searchweb/search"
 SEARCH_FORM_URL = "http://search.sasac.gov.cn:8080/searchweb/search_gzw.jsp"
 PAGE_SIZE = 50  # Fetch 50 search results per AJAX page
 OUTPUT_FILE = "articles.jsonl"
+ARTICLES_DIR = "articles"
 SEARCH_RESULTS_FILE = "search_results.json"
 CLASSIFICATION_FILE = "classification.json"
 ANALYSIS_FILE = "analysis_results.json"
@@ -361,25 +362,66 @@ def fetch_search_results(
 # ═══════════════════════════════════════════════════════════════════
 
 
-def load_already_fetched(output_file: str) -> set[str]:
-    """Read existing output file and return set of already-fetched URLs."""
+def _article_file_path(articles_dir: str, index: int) -> str:
+    """Return the file path for the article at the given 0-based index."""
+    return os.path.join(articles_dir, f"{index + 1:05d}.json")
+
+
+def _scan_articles_dir(articles_dir: str) -> set[str]:
+    """Scan ``articles_dir`` for already-fetched article files.
+
+    Returns the set of URLs that have been successfully fetched (no error).
+    """
     fetched_urls: set[str] = set()
-    if os.path.exists(output_file):
-        with open(output_file, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    record = json.loads(line)
-                    url = record.get("url", "")
-                    if url and not record.get("error"):
-                        fetched_urls.add(url)
-                except json.JSONDecodeError:
-                    continue
-        if fetched_urls:
-            print(f"  📄 Found {len(fetched_urls)} already-fetched articles in {output_file}")
+    if not os.path.isdir(articles_dir):
+        return fetched_urls
+
+    for fname in os.listdir(articles_dir):
+        if not fname.endswith(".json"):
+            continue
+        fpath = os.path.join(articles_dir, fname)
+        try:
+            with open(fpath, "r", encoding="utf-8") as f:
+                record = json.load(f)
+            url = record.get("url", "")
+            if url and not record.get("error"):
+                fetched_urls.add(url)
+        except (json.JSONDecodeError, OSError):
+            continue
+
+    if fetched_urls:
+        print(f"  📄 Found {len(fetched_urls)} already-fetched articles "
+              f"in {articles_dir}/")
     return fetched_urls
+
+
+def _load_articles_from_dir(
+    articles_dir: str, results: list[SearchResult],
+) -> list[tuple[SearchResult, str, str | None]]:
+    """Load previously-fetched articles from individual files in ``articles_dir``."""
+    url_to_result = {sr.url: sr for sr in results}
+    gathered: list[tuple[SearchResult, str, str | None]] = []
+
+    if not os.path.isdir(articles_dir):
+        return gathered
+
+    for fname in sorted(os.listdir(articles_dir)):
+        if not fname.endswith(".json"):
+            continue
+        fpath = os.path.join(articles_dir, fname)
+        try:
+            with open(fpath, "r", encoding="utf-8") as f:
+                record = json.load(f)
+            url = record.get("url", "")
+            sr = url_to_result.get(url)
+            if sr:
+                text = record.get("text") or ""
+                error = record.get("error")
+                gathered.append((sr, text, error))
+        except (json.JSONDecodeError, OSError):
+            continue
+
+    return gathered
 
 
 async def fetch_article_text(
@@ -436,42 +478,50 @@ async def fetch_article_text(
 
 async def fetch_all_articles(
     results: list[SearchResult],
-    output_file: str = OUTPUT_FILE,
+    articles_dir: str = ARTICLES_DIR,
     concurrency: int = 5,
     resume: bool = True,
 ) -> list[tuple[SearchResult, str, str | None]]:
     """Fetch full text for all search results with controlled concurrency.
 
-    Saves each article incrementally to output_file (JSONL). On resume,
-    skips articles already present in the output file.
+    Saves each article as an individual JSON file in ``articles_dir/``
+    (e.g. ``articles/00001.json``).  On resume, scans the directory for
+    already-fetched articles and skips them.
     """
+    os.makedirs(articles_dir, exist_ok=True)
+
     # Determine which articles need fetching
     already_fetched: set[str] = set()
     if resume:
-        already_fetched = load_already_fetched(output_file)
+        already_fetched = _scan_articles_dir(articles_dir)
 
-    todo = [sr for sr in results if sr.url not in already_fetched]
+    todo = [(i, sr) for i, sr in enumerate(results)
+            if sr.url not in already_fetched]
     skipped = len(results) - len(todo)
 
     if skipped > 0:
         print(f"  ⏭️  Skipping {skipped} already-fetched articles")
     if not todo:
         print("  ✅ All articles already fetched!")
-        # Load existing data from file for classification
-        gathered = _load_existing_results(output_file, results)
+        gathered = _load_articles_from_dir(articles_dir, results)
         return gathered
 
     print(f"  Fetching {len(todo)} remaining articles "
           f"(concurrency: {concurrency}, delay: {REQUEST_DELAY}s)")
 
     semaphore = asyncio.Semaphore(concurrency)
-    write_lock = asyncio.Lock()
-    pbar = tqdm(total=len(todo), desc="  Fetching articles", unit="art",
+    pbar = tqdm(total=len(results), desc="  Fetching articles", unit="art",
+                initial=skipped,
                 ncols=80, bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}]")
 
-    out_fp = open(output_file, "a", encoding="utf-8")  # append mode for resume
+    # Pre-populate already-fetched results
+    gathered: list[tuple[SearchResult, str, str | None]] = []
+    if skipped > 0:
+        pre_existing = _load_articles_from_dir(articles_dir, results)
+        gathered.extend(pre_existing)
 
-    async def fetch_one(sr: SearchResult):
+    async def fetch_one(index: int, sr: SearchResult):
+        filepath = _article_file_path(articles_dir, index)
         async with semaphore:
             await asyncio.sleep(REQUEST_DELAY)
             async with httpx.AsyncClient(
@@ -481,73 +531,40 @@ async def fetch_all_articles(
             ) as client:
                 text, error = await fetch_article_text(client, sr.url)
 
-                # Write incrementally
-                async with write_lock:
-                    record = {
-                        "title": sr.title,
-                        "url": sr.url,
-                        "date": sr.date,
-                        "site_name": sr.site_name,
-                        "text": text if not error else None,
-                        "error": error,
-                    }
-                    out_fp.write(json.dumps(record, ensure_ascii=False) + "\n")
-                    out_fp.flush()
+                record = {
+                    "title": sr.title,
+                    "url": sr.url,
+                    "date": sr.date,
+                    "site_name": sr.site_name,
+                    "text": text if not error else None,
+                    "error": error,
+                }
+                # Atomic write via temp file
+                tmp_path = filepath + ".tmp"
+                with open(tmp_path, "w", encoding="utf-8") as f:
+                    json.dump(record, f, ensure_ascii=False, indent=2)
+                os.replace(tmp_path, filepath)
 
                 pbar.update(1)
                 return sr, text, error
-
-    gathered: list[tuple[SearchResult, str, str | None]] = []
-
-    # Add pre-existing results from the file before fetching new ones
-    if skipped > 0:
-        pre_existing = _load_existing_results(output_file, results)
-        gathered.extend(pre_existing)
 
     # Fetch remaining articles in batches
     batch_size = 100
     try:
         for i in range(0, len(todo), batch_size):
             batch = todo[i : i + batch_size]
-            tasks = [fetch_one(sr) for sr in batch]
+            tasks = [fetch_one(idx, sr) for idx, sr in batch]
             batch_results = await asyncio.gather(*tasks)
             gathered.extend(batch_results)
     finally:
         pbar.close()
-        out_fp.close()
 
     ok = sum(1 for _, _, e in gathered if not e)
-    print(f"  ✅ {ok}/{len(gathered)} articles fetched successfully")
-    print(f"  📄 Article texts saved to {output_file}")
-    return gathered
-
-
-def _load_existing_results(
-    output_file: str, results: list[SearchResult]
-) -> list[tuple[SearchResult, str, str | None]]:
-    """Load previously-fetched articles from the JSONL output file."""
-    url_to_result = {sr.url: sr for sr in results}
-    gathered: list[tuple[SearchResult, str, str | None]] = []
-
-    if not os.path.exists(output_file):
-        return gathered
-
-    with open(output_file, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                record = json.loads(line)
-                url = record.get("url", "")
-                sr = url_to_result.get(url)
-                if sr:
-                    text = record.get("text") or ""
-                    error = record.get("error")
-                    gathered.append((sr, text, error))
-            except json.JSONDecodeError:
-                continue
-
+    ok_new = sum(1 for _, _, e in gathered[skipped:] if not e)
+    err_new = sum(1 for _, _, e in gathered[skipped:] if e)
+    print(f"  ✅ {ok} total ({ok_new} new + {skipped} cached), "
+          f"{err_new} errors")
+    print(f"  📄 Articles saved to {articles_dir}/")
     return gathered
 
 
@@ -812,8 +829,6 @@ def main():
     fetched = asyncio.run(fetch_all_articles(search_results, resume=True))
 
     errs = [(sr, e) for sr, _, e in fetched if e]
-    ok_count = len(fetched) - len(errs)
-    print(f"  ✅ {ok_count} articles OK, {len(errs)} errors")
 
     # ── Step 3: Classify ──
     print(f"\n🔍 STEP 3: Classifying articles for military industry firm mentions…")
@@ -828,10 +843,11 @@ def main():
     save_results(result, classified, all_errors)
 
     # ── Output files summary ──
-    article_count = sum(1 for _ in open(OUTPUT_FILE)) if os.path.exists(OUTPUT_FILE) else 0
-    print(f"\n📁 Output files:")
+    article_count = sum(1 for fn in os.listdir(ARTICLES_DIR)
+                        if fn.endswith(".json")) if os.path.isdir(ARTICLES_DIR) else 0
+    print("\n📁 Output files:")
     print(f"   {SEARCH_RESULTS_FILE}   — {len(search_results)} search result links")
-    print(f"   {OUTPUT_FILE}           — {article_count} articles with full text (JSONL)")
+    print(f"   {ARTICLES_DIR}/{' ' * (len(ARTICLES_DIR) - 1)}      — {article_count} individual article files (JSON)")
     print(f"   {CLASSIFICATION_FILE} — classification cache (resume-safe)")
     print(f"   {ANALYSIS_FILE}         — aggregate statistics")
 
