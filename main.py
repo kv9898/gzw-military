@@ -9,12 +9,14 @@ Pipeline:
 
 import asyncio
 import json
+import os
 import re
 import sys
 import time
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime
+from pathlib import Path
 from urllib.parse import urlencode
 
 import httpx
@@ -313,20 +315,30 @@ async def fetch_article_text(
 
 
 async def fetch_all_articles(
-    results: list[SearchResult], concurrency: int = 5
+    results: list[SearchResult],
+    concurrency: int = 5,
+    output_file: str | None = "articles.jsonl",
 ) -> list[tuple[SearchResult, str, str | None]]:
     """Fetch full text for all search results with controlled concurrency.
+
+    Saves each article's full text + metadata to output_file (JSONL format)
+    as they are fetched, so progress is preserved even if the script crashes.
 
     Returns list of (SearchResult, article_text, error_string).
     """
     semaphore = asyncio.Semaphore(concurrency)
     total = len(results)
     completed = 0
+    write_lock = asyncio.Lock()
+
+    # Open output file for incremental writing
+    out_fp = None
+    if output_file:
+        out_fp = open(output_file, "w", encoding="utf-8")
 
     async def fetch_one(sr: SearchResult):
         nonlocal completed
         async with semaphore:
-            # Rate limiting
             await asyncio.sleep(REQUEST_DELAY)
             async with httpx.AsyncClient(
                 timeout=HTTP_TIMEOUT,
@@ -340,14 +352,36 @@ async def fetch_all_articles(
                     print(f"  Fetched {completed}/{total} articles ({err_count} errors)")
                 return sr, text, error
 
+    async def fetch_and_save(sr: SearchResult):
+        sr_result, text, error = await fetch_one(sr)
+        # Write to JSONL incrementally
+        if out_fp and write_lock:
+            async with write_lock:
+                record = {
+                    "title": sr_result.title,
+                    "url": sr_result.url,
+                    "date": sr_result.date,
+                    "site_name": sr_result.site_name,
+                    "text": text if not error else None,
+                    "error": error,
+                }
+                out_fp.write(json.dumps(record, ensure_ascii=False) + "\n")
+                out_fp.flush()
+        return sr_result, text, error
+
     gathered: list[tuple[SearchResult, str, str | None]] = []
-    # Process in batches to show progress
     batch_size = 100
-    for i in range(0, total, batch_size):
-        batch = results[i : i + batch_size]
-        tasks = [fetch_one(sr) for sr in batch]
-        batch_results = await asyncio.gather(*tasks)
-        gathered.extend(batch_results)
+    try:
+        for i in range(0, total, batch_size):
+            batch = results[i: i + batch_size]
+            tasks = [fetch_and_save(sr) for sr in batch]
+            batch_results = await asyncio.gather(*tasks)
+            gathered.extend(batch_results)
+    finally:
+        if out_fp:
+            out_fp.close()
+            if output_file:
+                print(f"  📄 Article texts saved to {output_file}")
 
     return gathered
 
@@ -557,8 +591,12 @@ def main():
     # ── Print report ──
     print_report(result, classified, all_errors)
 
-    # ── Save ──
+    # ── Save analysis JSON ──
     save_results(result, classified, all_errors)
+
+    print("\n📁 Output files:")
+    print(f"   articles.jsonl       — all {len(search_results)} articles with full text")
+    print("   analysis_results.json — aggregate statistics & classification")
 
 
 if __name__ == "__main__":
